@@ -23,6 +23,9 @@ class RegisterViewController: UIViewController {
         imageView.image = UIImage(systemName: "person")
         imageView.tintColor = .gray
         imageView.contentMode = .scaleAspectFit
+        imageView.layer.masksToBounds = true
+        imageView.layer.borderWidth = 2
+        imageView.layer.borderColor = UIColor.lightGray.cgColor
         return imageView
     }()
     
@@ -158,6 +161,8 @@ class RegisterViewController: UIViewController {
                                  y: 100,
                                  width: size,
                                  height: size)
+        imageView.layer.cornerRadius = imageView.width/2.0
+        
         firstNameField.frame = CGRect(x: 30,
                                   y: imageView.bottom+10,   //imageView
                                   width: scrollView.width - 60,
@@ -263,7 +268,7 @@ extension RegisterViewController:UIImagePickerControllerDelegate, UINavigationCo
         print(info)
         
         guard let selectedImage = info[UIImagePickerController.InfoKey.editedImage] as? UIImage else {   //InfoKey에서 Jump Definition으로 들어간다.
-            return 
+            return
         }
         self.imageView.image = selectedImage
     }
