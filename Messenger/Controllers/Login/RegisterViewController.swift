@@ -146,6 +146,7 @@ class RegisterViewController: UIViewController {
     //여기서 Subview의 프레임을 지정해줘야한다.
     @objc private func didTapChangeProfilePic(){
         print("Change pic called")
+        presentPhotoActionSheet()
     }
     
     override func viewDidLayoutSubviews() {
@@ -222,4 +223,53 @@ extension RegisterViewController : UITextFieldDelegate{
         return true
     }
     
+}
+
+
+extension RegisterViewController:UIImagePickerControllerDelegate, UINavigationControllerDelegate{
+    
+    func presentPhotoActionSheet(){
+        let actionSheet = UIAlertController(title: "Profile Picture", message: "How would you like to select a picture?", preferredStyle: .actionSheet)
+        actionSheet.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        actionSheet.addAction(UIAlertAction(title: "Take photo", style: .default, handler: {[weak self]_ in //[weak self]는 왜 해야하나??
+            self?.presentCamera()
+        }))
+        actionSheet.addAction(UIAlertAction(title: "Choose photo", style: .default, handler: {[weak self]_ in
+            self?.presentPhotoPicker()
+        }))
+        present(actionSheet, animated: true)
+    }
+    
+    func presentCamera(){
+        let vc = UIImagePickerController()
+        vc.sourceType = .camera //camera를 사용하는 PickerController
+        vc.delegate = self
+        vc.allowsEditing = true
+        present(vc, animated: true) //present 해야지 뜬다?
+    }
+    
+    func presentPhotoPicker(){
+        let vc = UIImagePickerController()
+        vc.sourceType = .photoLibrary   //photoLibrary 사용하는 PickerController
+        vc.delegate = self
+        vc.allowsEditing = true
+        present(vc,animated: true)
+        
+    }
+    
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        //info를 통해서 데이터가 들어온다?
+        picker.dismiss(animated: true, completion: nil)
+        print(info)
+        
+        guard let selectedImage = info[UIImagePickerController.InfoKey.editedImage] as? UIImage else {   //InfoKey에서 Jump Definition으로 들어간다.
+            return 
+        }
+        self.imageView.image = selectedImage
+    }
+    
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        //cancel이 눌렸을 때?
+        picker.dismiss(animated: true, completion: nil)
+    }
 }
