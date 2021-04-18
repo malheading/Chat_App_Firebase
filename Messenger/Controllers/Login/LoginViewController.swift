@@ -133,15 +133,18 @@ class LoginViewController: UIViewController {
             return
         }
         //여기에 Firebase Log in을 적용할 예정//
-        //Firebase Log in을 했을 때
-        FirebaseAuth.Auth.auth().signIn(withEmail: email, password: password, completion: {authResult, error in
+        //Firebase Log in을 시도 했을 때
+        FirebaseAuth.Auth.auth().signIn(withEmail: email, password: password, completion: {[weak self]authResult, error in
+            guard let strongSelf = self else{
+                return
+            }
             guard let result=authResult, error==nil else{
                 print("Failed to log in user with email:\(email)")
                 return
             }
             let user=result.user
             print("Logged in with user: \(email)")
-            
+            strongSelf.navigationController?.dismiss(animated: true, completion: nil)
             
         })
     }

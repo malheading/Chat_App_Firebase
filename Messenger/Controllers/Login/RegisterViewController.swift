@@ -198,14 +198,21 @@ class RegisterViewController: UIViewController {
             return
         }
         //여기에 Firebase Log in을 적용할 예정//
-        FirebaseAuth.Auth.auth().createUser(withEmail: email, password: password, completion: {authResult, error in
-            guard let result=authResult, error == nil else{
+        FirebaseAuth.Auth.auth().createUser(withEmail: email, password: password, completion: {[weak self]authResult, error in
+            guard let strongSelf = self else{
+                return
+            }
+            guard authResult!==nil , error == nil else{
                 print("Error creating user")
                 return
             }
             
-            let user = result.user
-            print("Created User:\(user)")
+            DatabaseManager.shared.insertUser(with: ChatAppUser(firstName: firstName,
+                                                                lastName: lastName,
+                                                                emailAddress: email))   //database에 정보를 입력
+            
+            
+            strongSelf.navigationController?.dismiss(animated: true, completion: nil)   //이 클래스의 정보를 공유하기 위해서 dismiss
         })
     }
     
