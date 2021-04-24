@@ -20,7 +20,7 @@ class RegisterViewController: UIViewController {
     
     private let imageView:UIImageView = {
         let imageView = UIImageView()
-//        imageView.image = UIImage(named:"logo")
+        //        imageView.image = UIImage(named:"logo")
         imageView.image = UIImage(systemName: "person")
         imageView.tintColor = .gray
         imageView.contentMode = .scaleAspectFit
@@ -96,7 +96,7 @@ class RegisterViewController: UIViewController {
         
         return field
     }()
-
+    
     
     private let registerButton:UIButton = {
         let button = UIButton()
@@ -165,13 +165,13 @@ class RegisterViewController: UIViewController {
         imageView.layer.cornerRadius = imageView.width/2.0
         
         firstNameField.frame = CGRect(x: 30,
-                                  y: imageView.bottom+10,   //imageView
-                                  width: scrollView.width - 60,
-                                  height: 52)    //일반적으로 text edit의 height?
+                                      y: imageView.bottom+10,   //imageView
+                                      width: scrollView.width - 60,
+                                      height: 52)    //일반적으로 text edit의 height?
         lastNameField.frame = CGRect(x: 30,
-                                  y: firstNameField.bottom+10,   //imageView
-                                  width: scrollView.width - 60,
-                                  height: 52)    //일반적으로 text edit의 height?
+                                     y: firstNameField.bottom+10,   //imageView
+                                     width: scrollView.width - 60,
+                                     height: 52)    //일반적으로 text edit의 height?
         emailField.frame = CGRect(x: 30,
                                   y: lastNameField.bottom+10,   //imageView
                                   width: scrollView.width - 60,
@@ -198,26 +198,35 @@ class RegisterViewController: UIViewController {
             return
         }
         //여기에 Firebase Log in을 적용할 예정//
-        FirebaseAuth.Auth.auth().createUser(withEmail: email, password: password, completion: {[weak self]authResult, error in
+        
+        DatabaseManager.shared.userExists(with: email, completion: {[weak self]exists in
             guard let strongSelf = self else{
                 return
             }
-            guard authResult!==nil , error == nil else{
-                print("Error creating user")
+            guard !exists else{
+                //user alread exists
+                strongSelf.alertUserLoginError(message: "Email already exists.")
                 return
             }
-            
-            DatabaseManager.shared.insertUser(with: ChatAppUser(firstName: firstName,
-                                                                lastName: lastName,
-                                                                emailAddress: email))   //database에 정보를 입력
-            
-            
-            strongSelf.navigationController?.dismiss(animated: true, completion: nil)   //이 클래스의 정보를 공유하기 위해서 dismiss
+            FirebaseAuth.Auth.auth().createUser(withEmail: email, password: password, completion: {authResult, error in
+                
+                guard authResult != nil , error == nil else{
+                    print("Error creating user")
+                    return
+                }
+                
+                DatabaseManager.shared.insertUser(with: ChatAppUser(firstName: firstName,
+                                                                    lastName: lastName,
+                                                                    emailAddress: email))   //database에 정보를 입력
+                
+                
+                strongSelf.navigationController?.dismiss(animated: true, completion: nil)   //이 클래스의 정보를 공유하기 위해서 dismiss
+            })
         })
     }
     
-    func alertUserLoginError(){
-        let alert = UIAlertController(title: "woops!", message: "Please enter all information to register.", preferredStyle: .alert)
+    func alertUserLoginError(message:String="Please enter all information to register."){
+        let alert = UIAlertController(title: "woops!", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Dismiss", style: .cancel, handler: nil))
         present(alert, animated: true)
         
