@@ -29,7 +29,14 @@ extension DatabaseManager{
     
     public func userExists(with email:String, completion:@escaping ((Bool)->Void)){    //이미 아이디 데이터 베이스에존재한지 확인
         //true: 아이디가 중복임
-        
+        database.child(email).observeSingleEvent(of: .value, with: {snapshot in
+            guard snapshot.value as? String != nil else{
+                completion(false)
+                return
+            }
+            
+            completion(true)
+        } )
     }
     
     /// Inserts new user to databse
