@@ -11,7 +11,7 @@ import FirebaseAuth
 class ConversationsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .red
+//        view.backgroundColor = .red   //Now I don't use this
         
         
     }
