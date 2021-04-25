@@ -168,18 +168,22 @@ class RegisterViewController: UIViewController {
                                       y: imageView.bottom+10,   //imageView
                                       width: scrollView.width - 60,
                                       height: 52)    //일반적으로 text edit의 height?
+        firstNameField.textColor = .black
         lastNameField.frame = CGRect(x: 30,
                                      y: firstNameField.bottom+10,   //imageView
                                      width: scrollView.width - 60,
                                      height: 52)    //일반적으로 text edit의 height?
+        lastNameField.textColor = .black
         emailField.frame = CGRect(x: 30,
                                   y: lastNameField.bottom+10,   //imageView
                                   width: scrollView.width - 60,
                                   height: 52)    //일반적으로 text edit의 height?
+        emailField.textColor = .black
         passwordField.frame = CGRect(x: 30,
                                      y: emailField.bottom+10,   //imageView
                                      width: scrollView.width - 60,
                                      height: 52)    //일반적으로 text edit의 height?
+        passwordField.textColor = .black
         registerButton.frame = CGRect(x: 30, y: passwordField.bottom + 10, width: passwordField.width, height: 52)
         
     }

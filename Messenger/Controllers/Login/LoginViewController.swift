@@ -7,14 +7,15 @@
 
 import UIKit
 import FirebaseAuth
+import FBSDKLoginKit
 
 class LoginViewController: UIViewController {
-
+    
     private let scrollView:UIScrollView = {
         //이것도 클로져(closure)??
         let scrollView = UIScrollView()
         scrollView.clipsToBounds = true
-//        scrollView.
+        //        scrollView.
         return scrollView
     }()
     
@@ -45,7 +46,7 @@ class LoginViewController: UIViewController {
         let field = UITextField()
         field.autocapitalizationType = .none
         field.autocorrectionType = .no
-//        field.returnKeyType = .continue //return (엔터)를 눌렀을 때, 다음 UI로 이동하는 버튼?
+        //        field.returnKeyType = .continue //return (엔터)를 눌렀을 때, 다음 UI로 이동하는 버튼?
         field.returnKeyType = .done //return (엔터)를 눌렀을 때, 완료로 설정
         field.layer.cornerRadius = 12
         field.layer.borderWidth = 1
@@ -72,6 +73,13 @@ class LoginViewController: UIViewController {
         return button
     }()
     
+    //private let facebookLoginButton = FBLoginButton()
+    private let facebookLoginButton:FBLoginButton = {
+        let facebookLoginButton = FBLoginButton()
+        facebookLoginButton.permissions = ["email,public_profile"]
+        return facebookLoginButton
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Log in"
@@ -88,6 +96,8 @@ class LoginViewController: UIViewController {
         emailField.delegate = self  //extension으로 LoginViewController type을 UITextFieldDelegate로 assign
         passwordField.delegate = self
         
+        facebookLoginButton.delegate = self
+        
         //add subview for logo
         //앞에서 만든 Subview들을 등록해야한다.
         view.addSubview(scrollView) //VStack 대신에 UIScrollView로 만들었고
@@ -95,6 +105,7 @@ class LoginViewController: UIViewController {
         scrollView.addSubview(emailField)
         scrollView.addSubview(passwordField)
         scrollView.addSubview(loginButton)
+        scrollView.addSubview(facebookLoginButton)
         
     }
     
@@ -112,13 +123,17 @@ class LoginViewController: UIViewController {
         emailField.frame = CGRect(x: 30,
                                   y: imageView.bottom+10,   //imageView
                                   width: scrollView.width - 60,
-                                 height: 52)    //일반적으로 text edit의 height?
+                                  height: 52)    //일반적으로 text edit의 height?
+        emailField.textColor = .black   //이메일 텍스트 색상은 검정입니다.
         passwordField.frame = CGRect(x: 30,
-                                    y: emailField.bottom+10,   //imageView
-                                    width: scrollView.width - 60,
-                                   height: 52)    //일반적으로 text edit의 height?
+                                     y: emailField.bottom+10,   //imageView
+                                     width: scrollView.width - 60,
+                                     height: 52)    //일반적으로 text edit의 height?
+        passwordField.textColor = .black    //패스워드 텍스트 글씨도 검정
         loginButton.frame = CGRect(x: 30, y: passwordField.bottom + 10, width: passwordField.width, height: 52)
-
+        
+        facebookLoginButton.frame = CGRect(x: 30, y: loginButton.bottom + 10, width: loginButton.width, height: 52)
+        
     }
     
     //버튼 눌렀을 때 수행하는 함수
@@ -161,12 +176,11 @@ class LoginViewController: UIViewController {
         vc.title = "Create account"
         navigationController?.pushViewController(vc, animated: true)
     }
-
+    
 }
 
 
 extension LoginViewController : UITextFieldDelegate{
-    
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         //textField에서 return을 눌렀을 때
         if textField == emailField{
@@ -177,5 +191,33 @@ extension LoginViewController : UITextFieldDelegate{
         }
         return true
     }
+}
+
+extension LoginViewController:LoginButtonDelegate{
+    func loginButtonDidLogOut(_ loginButton: FBLoginButton) {
+        //no operation now
+    }
+    
+    func loginButton(_ loginButton: FBLoginButton, didCompleteWith result: LoginManagerLoginResult?, error: Error?) {
+        guard let token = result?.token?.tokenString else {//로그인 실패 했을 때는?
+            print("페이스북 이용한 유저 로그인 실패 - 토큰을 가져오지 못했습니다.")
+            return
+        }
+        let credential = FacebookAuthProvider.credential(withAccessToken: token)//credential 생성
+        FirebaseAuth.Auth.auth().signIn(with: credential, completion: {[weak self]authResult, error in
+            guard let strongSelf = self else{
+                return
+            }
+            guard authResult != nil, error == nil else{
+                print("Facebook credential log in failed, MFA may be needed")
+                return
+            }
+            print("로그인 성공")
+            strongSelf.navigationController?.dismiss(animated: true, completion: nil)
+        })
+        
+        
+    }
+    
     
 }
