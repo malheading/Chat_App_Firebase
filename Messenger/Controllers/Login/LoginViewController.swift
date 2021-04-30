@@ -8,6 +8,7 @@
 import UIKit
 import FirebaseAuth
 import FBSDKLoginKit
+import GoogleSignIn
 
 class LoginViewController: UIViewController {
     
@@ -80,8 +81,28 @@ class LoginViewController: UIViewController {
         return facebookLoginButton
     }()
     
+    private let googleLoginButton = GIDSignInButton()   //구글 로그인 버튼 인스턴스 생성
+    
+    private var loginObserver:NSObjectProtocol? //옵저버 추가
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        loginObserver = NotificationCenter.default.addObserver(forName: .didLogInNotification,
+                                                               object: nil,
+                                                               queue: .main,
+                                                               using: {[weak self] _ in
+                                                                guard let strongSelf = self else{
+                                                                    return
+                                                                }
+                                                                
+                                                                strongSelf.dismiss(animated: true, completion: nil)
+                                                               })
+        
+        // 구글아이디가 이미 있는 경우에는 자동으로 로그인 됩니다.
+        GIDSignIn.sharedInstance()?.presentingViewController = self
+        GIDSignIn.sharedInstance().signIn()
+        
         title = "Log in"
         view.backgroundColor = .white
         
@@ -106,7 +127,13 @@ class LoginViewController: UIViewController {
         scrollView.addSubview(passwordField)
         scrollView.addSubview(loginButton)
         scrollView.addSubview(facebookLoginButton)
-        
+        scrollView.addSubview(googleLoginButton)    //구글 로그인 버튼 추가
+    }//end of viewDidLoad()
+    
+    deinit {//메모리 아끼기 위해서 loginObserver가 dismiss될 때 제거
+        if let observer = loginObserver{
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
     
     //오버라이드 함수 : Subview를 불러오는 함수
@@ -134,6 +161,7 @@ class LoginViewController: UIViewController {
         
         facebookLoginButton.frame = CGRect(x: 30, y: loginButton.bottom + 10, width: loginButton.width, height: 52)
         
+        googleLoginButton.frame = CGRect(x: 30, y: facebookLoginButton.bottom + 10, width: facebookLoginButton.width, height: 52)
     }
     
     //버튼 눌렀을 때 수행하는 함수

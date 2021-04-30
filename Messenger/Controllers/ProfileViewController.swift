@@ -7,6 +7,8 @@
 
 import UIKit
 import FirebaseAuth //firebase auth 사용
+import FBSDKLoginKit
+import GoogleSignIn
 
 class ProfileViewController: UIViewController {
     
@@ -48,9 +50,12 @@ extension ProfileViewController: UITableViewDelegate, UITableViewDataSource{
                                                 guard let strongSelf=self else{
                                                     return
                                                 }
-                                                
                                                 do {
+                                                    //  실제 로그아웃 수행하는 부분
                                                     try FirebaseAuth.Auth.auth().signOut()
+                                                    try FBSDKLoginKit.LoginManager().logOut()
+                                                    try GIDSignIn.sharedInstance()?.signOut()
+                                                    
                                                     let vc = LoginViewController()
                                                     let nav = UINavigationController(rootViewController: vc)
                                                     nav.modalPresentationStyle = .fullScreen
