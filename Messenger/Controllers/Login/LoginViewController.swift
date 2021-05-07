@@ -9,8 +9,11 @@ import UIKit
 import FirebaseAuth
 import FBSDKLoginKit
 import GoogleSignIn
+import JGProgressHUD
 
 class LoginViewController: UIViewController {
+    
+    private let spinner = JGProgressHUD(style: .dark)
     
     private let scrollView:UIScrollView = {
         //이것도 클로져(closure)??
@@ -175,12 +178,19 @@ class LoginViewController: UIViewController {
             alertUserLoginError()
             return
         }
+        
+        spinner.show(in: view)  //스피너 보여주기
+        
         //여기에 Firebase Log in을 적용할 예정//
         //Firebase Log in을 시도 했을 때
         FirebaseAuth.Auth.auth().signIn(withEmail: email, password: password, completion: {[weak self]authResult, error in
             guard let strongSelf = self else{
                 return
             }
+            DispatchQueue.main.async {
+                strongSelf.spinner.dismiss()    // 스피너 없애기?
+            }
+            
             guard let result=authResult, error==nil else{
                 print("Failed to log in user with email:\(email)")
                 return

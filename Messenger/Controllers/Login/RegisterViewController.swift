@@ -7,8 +7,11 @@
 
 import UIKit
 import FirebaseAuth
+import JGProgressHUD
 
 class RegisterViewController: UIViewController {
+    
+    let spinner = JGProgressHUD(style: .dark)   //말 그대로 스피너이다. (로드중이라는 표시)
     
     private let scrollView:UIScrollView = {
         //이것도 클로져(closure)??
@@ -201,12 +204,18 @@ class RegisterViewController: UIViewController {
             alertUserLoginError()
             return
         }
-        //여기에 Firebase Log in을 적용할 예정//
+        spinner.show(in: view)  //스피너 보이기
         
+        //여기에 Firebase Log in을 적용할 예정//
         DatabaseManager.shared.userExists(with: email, completion: {[weak self]exists in
             guard let strongSelf = self else{
                 return
             }
+            
+            DispatchQueue.main.async {
+                strongSelf.spinner.dismiss()    //스피너 없애기??
+            }
+            
             guard !exists else{
                 //user alread exists
                 strongSelf.alertUserLoginError(message: "Email already exists.")
