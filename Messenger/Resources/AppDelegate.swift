@@ -91,8 +91,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
         let email = user.profile.email as String //  유저 이메일
         DatabaseManager.shared.userExists(with: email, completion: {exists in
             if !exists{ //Insert to Database
-                DatabaseManager.shared.insertUser(with: ChatAppUser(firstName: user.profile.givenName,
-                                                                    lastName: user.profile.familyName, emailAddress: email))
+                let chatUser = ChatAppUser(firstName: user.profile.givenName,
+                                           lastName: user.profile.familyName,
+                                           emailAddress: email)
+                
+                DatabaseManager.shared.insertUser(with: chatUser, completion: {success in
+                    if success{
+                        //upload image here
+                    }
+                    return
+                })
             }
         })
         

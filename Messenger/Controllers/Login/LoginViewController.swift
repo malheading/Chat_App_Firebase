@@ -237,13 +237,14 @@ extension LoginViewController:LoginButtonDelegate{
     }
     
     func loginButton(_ loginButton: FBLoginButton, didCompleteWith result: LoginManagerLoginResult?, error: Error?) {
+        //페이스북 로그인 버튼 클릭 했을 때
         guard let token = result?.token?.tokenString else {//로그인 실패 했을 때는?
             print("페이스북 이용한 유저 로그인 실패 - 토큰을 가져오지 못했습니다.")
             return
         }
         //페이스북에서 받아온 정보(이름, 이메일) -> Database에 넣어야 한다.
         let facebookRequest = FBSDKLoginKit.GraphRequest(graphPath: "me",
-                                                         parameters: ["fields":"email, name"],
+                                                         parameters: ["fields":"email, first_name, last_name, picture.type(large)"],
                                                          tokenString: token,
                                                          version: nil,
                                                          httpMethod: .get)
@@ -254,24 +255,54 @@ extension LoginViewController:LoginButtonDelegate{
                 return
             }
             print("\(result)")  //debug...
-            guard let userName = result["name"] as? String,
-                  let email = result["email"] as? String else{
+            
+            return  //end function here for debuging...
+            guard let firstName = result["first_name"] as? String,
+                  let lastName = result["last_name"] as? String,
+                  let email = result["email"] as? String,
+                  let picture = result["picture"] as? [String:Any],
+                  let data = picture["data"] as? [String:Any],
+                  let pictureUrl = data["url"] as? String else{// String object이기 때문에 []를 사용??
                 print("Failed to get email and name from facebook results.")
                 return
             }
             //First name과 Last name으로 구분
-            var lastName = ""
-            let firstName = userName.components(separatedBy: " ")[0]
-            if (userName.components(separatedBy: " ").count > 1) {
-                lastName = userName.components(separatedBy: " ").last ?? ""
-            }
+            //            var lastName = ""
+            //            let firstName = userName.components(separatedBy: " ")[0]
+            //            if (userName.components(separatedBy: " ").count > 1) {
+            //                lastName = userName.components(separatedBy: " ").last ?? ""
+            //            }
             
             //Firebase의 DatabaseManager(내가 만든 클래스의 객체)에 보내준다.
             DatabaseManager.shared.userExists(with: email, completion: {exists in
                 if !exists{//만약 계정이 존재하지 않으면 -> 데이터베이스에 넣어줘야한다.
-                    DatabaseManager.shared.insertUser(with: ChatAppUser(firstName: firstName as String,
-                                                                        lastName: lastName as String,
-                                                                        emailAddress: email))
+                    let chatUser = ChatAppUser(firstName: firstName as String,
+                                               lastName: lastName as String,
+                                               emailAddress: email)
+                    DatabaseManager.shared.insertUser(with: chatUser, completion: {success in
+                        if success{//데이터베이스에 유저 입력을 성공하면
+                            guard let url = URL(string: pictureUrl) else{//이미지의 URL을 url변수에 저장한다.
+                                return
+                            }
+                            
+                            URLSession.shared.dataTask(with: url, completionHandler: {data, response, error in
+                                guard let data = data else{//url에서 데이터를 얻어온다.
+                                    return
+                                }
+                                //upload image here
+                                let fileName = chatUser.profilePictureFileName
+                                StorageManager.shared.uploadProfilePicture(with: data, fileName: fileName, completion: {result in
+                                    switch result {
+                                    case .success(let downloadURL):
+                                        UserDefaults.standard.setValue(downloadURL, forKey: "profile_picture_url")  //database에 업로드된 이미지의 저장 장소를 저장한다?
+                                        print(downloadURL)
+                                    case .failure(let error):
+                                        print("storage manager error: \(error)")
+                                    }
+                                })
+                            })
+                        }
+                    })
                 }
             })
             

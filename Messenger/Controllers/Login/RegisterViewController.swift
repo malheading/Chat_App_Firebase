@@ -207,6 +207,7 @@ class RegisterViewController: UIViewController {
         spinner.show(in: view)  //스피너 보이기
         
         //여기에 Firebase Log in을 적용할 예정//
+        //User가 이미 있는지 확인
         DatabaseManager.shared.userExists(with: email, completion: {[weak self]exists in
             guard let strongSelf = self else{
                 return
@@ -228,9 +229,28 @@ class RegisterViewController: UIViewController {
                     return
                 }
                 
-                DatabaseManager.shared.insertUser(with: ChatAppUser(firstName: firstName,
-                                                                    lastName: lastName,
-                                                                    emailAddress: email))   //database에 정보를 입력
+                //Database에 실제로 정보를 저장하는 기능
+                let chatUser = ChatAppUser(firstName: firstName,
+                                           lastName: lastName,
+                                           emailAddress: email)
+                DatabaseManager.shared.insertUser(with: chatUser, completion: {success in
+                    if success{
+                        //upload image here
+                        guard let image = strongSelf.imageView.image, let data = image.pngData() else{
+                            return  //이미지를 png로 바꿀 수 없을때
+                        }
+                        let fileName = chatUser.profilePictureFileName
+                        StorageManager.shared.uploadProfilePicture(with: data, fileName: fileName, completion: {result in
+                            switch result {
+                            case .success(let downloadURL):
+                                UserDefaults.standard.setValue(downloadURL, forKey: "profile_picture_url")  //database에 업로드된 이미지의 저장 장소를 저장한다?
+                                print(downloadURL)
+                            case .failure(let error):
+                                print("storage manager error: \(error)")
+                            }
+                        })
+                    }
+                })   //database에 정보를 입력
                 
                 
                 strongSelf.navigationController?.dismiss(animated: true, completion: nil)   //이 클래스의 정보를 공유하기 위해서 dismiss

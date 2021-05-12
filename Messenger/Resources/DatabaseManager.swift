@@ -43,12 +43,20 @@ extension DatabaseManager{
     }
     
     /// Inserts new user to databse
-    public func insertUser(with user: ChatAppUser){ //ChatAppUser은 구조체
-        //database에 넣는다
+    public func insertUser(with user: ChatAppUser, completion: @escaping (Bool) -> Void){ //ChatAppUser은 구조체
+        //함수에 completion을 넣는 방법 -->참고할 것
+        //database에 넣는다 <-- database.child().setvalue()
         database.child(user.safeEmail).setValue([
             "first_name": user.firstName,
             "last_name": user.lastName
-        ])
+        ],withCompletionBlock: {error, reference in
+            guard error == nil else{
+                print("failed to write user information to database")
+                completion(false)   //insertUser함수의 completion
+                return
+            }
+            completion(true)    //completion에다가 true를 넣고 반환해줘라
+        })
     }
 }
 
@@ -61,5 +69,9 @@ struct ChatAppUser {
         var safeEmail = emailAddress.replacingOccurrences(of: ".", with: "-")
         safeEmail = safeEmail.replacingOccurrences(of: "@", with: "-")
         return safeEmail
+    }
+    var profilePictureFileName:String{
+        //ss010510-gmail-com_profile_picture.png
+        return "\(safeEmail)_profile_picture.png"
     }
 }
