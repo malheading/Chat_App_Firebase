@@ -254,9 +254,10 @@ extension LoginViewController:LoginButtonDelegate{
                 print("Failed to make facebook graph request.")
                 return
             }
-            print("\(result)")  //debug...
             
-            return  //end function here for debuging...
+//            print("\(result)")  //debug...
+//            return  //end function here for debuging...
+            
             guard let firstName = result["first_name"] as? String,
                   let lastName = result["last_name"] as? String,
                   let email = result["email"] as? String,
@@ -287,6 +288,8 @@ extension LoginViewController:LoginButtonDelegate{
                             
                             URLSession.shared.dataTask(with: url, completionHandler: {data, response, error in
                                 guard let data = data else{//url에서 데이터를 얻어온다.
+                                    //data 받아오는 것을 실패 하면?
+                                    print("failed to get data from facebook")
                                     return
                                 }
                                 //upload image here
@@ -300,7 +303,7 @@ extension LoginViewController:LoginButtonDelegate{
                                         print("storage manager error: \(error)")
                                     }
                                 })
-                            })
+                            }).resume()
                         }
                     })
                 }
@@ -313,7 +316,7 @@ extension LoginViewController:LoginButtonDelegate{
                     return
                 }
                 guard authResult != nil, error == nil else{
-                    print("Facebook credential log in failed, MFA may be needed - \(error)")
+                    print("Facebook credential log in failed, MFA may be needed - \(String(describing: error))")
                     return
                 }
                 print("로그인 성공")

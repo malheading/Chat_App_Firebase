@@ -98,6 +98,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
                 DatabaseManager.shared.insertUser(with: chatUser, completion: {success in
                     if success{
                         //upload image here
+                        if user.profile.hasImage{//구글은 이미지가 있는지 먼저 확인해준다.
+                            guard let url = user.profile.imageURL(withDimension: 200) else {
+                                print("Error! Failed to get image url from google")
+                                return
+                            }
+                            URLSession.shared.dataTask(with: url, completionHandler: {data, response, error in
+                                guard let data=data else{
+                                    print("Error in google sign in! URL Session failed to get data from URL:\(String(describing: error))")
+                                    return
+                                }
+                                let fileName = chatUser.profilePictureFileName
+                                StorageManager.shared.uploadProfilePicture(with: data, fileName: fileName, completion: {result in
+                                    switch result {
+                                    case .success(let downloadURL):
+                                        UserDefaults.standard.setValue(downloadURL, forKey: "profile_picture_url")  //database에 업로드된 이미지의 저장 장소를 저장한다?
+                                        print(downloadURL)
+                                    case .failure(let error):
+                                        print("storage manager error: \(error)")
+                                    }
+                                })
+                            }).resume()
+                        }
                     }
                     return
                 })
@@ -113,7 +135,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
                                                        accessToken: authentication.accessToken)
         Firebase.Auth.auth().signIn(with: credential, completion: {authResult, error in
             guard error != nil else{
-                print("Firebase auth with Google credential Failed:\(error)")
+                print("Firebase auth with Google credential Failed:\(String(describing: error))")
                 return
             }
             //  Google Login Succeeded
