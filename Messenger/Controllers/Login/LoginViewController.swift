@@ -181,7 +181,6 @@ class LoginViewController: UIViewController {
         
         spinner.show(in: view)  //스피너 보여주기
         
-        //여기에 Firebase Log in을 적용할 예정//
         //Firebase Log in을 시도 했을 때
         FirebaseAuth.Auth.auth().signIn(withEmail: email, password: password, completion: {[weak self]authResult, error in
             guard let strongSelf = self else{
@@ -196,8 +195,11 @@ class LoginViewController: UIViewController {
                 return
             }
             let user=result.user
+            
+            UserDefaults.standard.set(email, forKey: "email")   // 현재 로그인한 사람의 이메일을 캐쉬에 저장?
+            
             print("Logged in with user: \(email)")
-            strongSelf.navigationController?.dismiss(animated: true, completion: nil)
+            strongSelf.navigationController?.dismiss(animated: true, completion: nil)   // 현재 컨트롤러(로그인 컨트롤러)를 제거한다?
             
         })
     }
@@ -267,12 +269,8 @@ extension LoginViewController:LoginButtonDelegate{
                 print("Failed to get email and name from facebook results.")
                 return
             }
-            //First name과 Last name으로 구분
-            //            var lastName = ""
-            //            let firstName = userName.components(separatedBy: " ")[0]
-            //            if (userName.components(separatedBy: " ").count > 1) {
-            //                lastName = userName.components(separatedBy: " ").last ?? ""
-            //            }
+            
+            UserDefaults.standard.set(email, forKey: "email")   // 현재 로그인한 사람의 이메일을 캐쉬에 저장?
             
             //Firebase의 DatabaseManager(내가 만든 클래스의 객체)에 보내준다.
             DatabaseManager.shared.userExists(with: email, completion: {exists in

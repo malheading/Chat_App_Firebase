@@ -89,6 +89,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
         print("Did signed in with google")
         
         let email = user.profile.email as String //  유저 이메일
+        
+        UserDefaults.standard.set(email, forKey: "email")   // 현재 로그인한 사람의 이메일을 캐쉬에 저장?
+        
         DatabaseManager.shared.userExists(with: email, completion: {exists in
             if !exists{ //Insert to Database
                 let chatUser = ChatAppUser(firstName: user.profile.givenName,
