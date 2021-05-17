@@ -50,6 +50,7 @@ class ProfileViewController: UIViewController {
         imageView.backgroundColor = .white
         imageView.layer.borderColor = UIColor.white.cgColor
         imageView.layer.borderWidth = 3
+        imageView.layer.cornerRadius = imageView.width/2
         imageView.layer.masksToBounds = true   // subView를 headerView에 맞추서 자를것인지?
         
         headerView.addSubview(imageView)

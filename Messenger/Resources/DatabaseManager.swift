@@ -20,10 +20,10 @@ final class DatabaseManager {
         safeEmail = safeEmail.replacingOccurrences(of: "@", with: "-")
         return safeEmail
     }
-//    public func test(){
-//        //json같은 dictionary가 생성
-//        database.child("foo").setValue(["something":true])
-//    }
+    //    public func test(){
+    //        //json같은 dictionary가 생성
+    //        database.child("foo").setValue(["something":true])
+    //    }
 }
 
 // MARK:- Account Management
@@ -58,7 +58,50 @@ extension DatabaseManager{
                 completion(false)   //insertUser함수의 completion
                 return
             }
-            completion(true)    //completion에다가 true를 넣고 반환해줘라
+            /* 데이터 베이스에 다음과 같이 넣으려고 한다.
+             -users
+             [-"name": "jeongwon kim"
+             -"safe_email":"ss010510-gmail-com"]
+             
+             [-"name": "jeongwon kim"
+             -"safe_email":"jsi00046-nate-com"]
+             */
+            self.database.child("users").observeSingleEvent(of: .value, andPreviousSiblingKeyWith: {snapshot, string in
+                if var userCollection = snapshot.value as? [[String:String]]{
+                    // append to user dictionary
+                    let newElement:[String:String] = [
+                        "name":user.firstName + " " + user.lastName,
+                        "email":user.safeEmail
+                    ]
+
+                    userCollection.append(newElement)
+                    self.database.child("users").setValue(userCollection, withCompletionBlock: {error,_ in
+                        guard error==nil else{
+                            print("Error!: E001-Failed to insert user to database.")
+                            completion(false)
+                            return
+                        }
+                        completion(true) //completion에다가 true를 넣고 반환해줘라
+                    })
+                }
+                else{
+                    // create this array
+                    let newCollection:[[String:String]] = [
+                        [
+                            "name":user.firstName + " " + user.lastName,
+                            "email":user.safeEmail
+                        ]
+                    ]
+                    self.database.child("users").setValue(newCollection, withCompletionBlock: {error, _ in
+                        guard error==nil else{
+                            print("Error!: database의 'users' 아래에 유저 생성 실패!'")
+                            completion(false)
+                            return
+                        }
+                        completion(true) //completion에다가 true를 넣고 반환해줘라
+                    })
+                }
+            })
         })
     }
 }
