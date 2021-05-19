@@ -12,6 +12,9 @@ class NewConversationViewController: UIViewController {
 
     private let spinner = JGProgressHUD(style: .dark)
     
+    private var users = [[String:String]]() //empty array create
+    private var hasFetched = false  // default value of hasFetched is false
+    
     private let searchBar:UISearchBar = {
         let searchBar = UISearchBar()
         searchBar.placeholder = "Search for Users..."
@@ -58,6 +61,21 @@ class NewConversationViewController: UIViewController {
 extension NewConversationViewController:UISearchBarDelegate{
     
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        guard let text = searchBar.text, !text.replacingOccurrences(of: " ", with: "").isEmpty else{
+            print("Error003!: NewConversationController.swift -> searchBar is empty!")
+            return
+        }
+        spinner.show(in: view)
+        self.searchUser(query: text)
+    }
+    
+    func searchUser(query: String){
+        // Check the user id array is exist
+        if hasFetched{
+            // filter the users
+        }else{
+            // fetch from firebase and then filter users.
+        }
         
     }
 }
