@@ -21,8 +21,20 @@ struct Sender:SenderType {
     var displayName: String
 }
 
-class ChatViewController: MessagesViewController {//Dependencies중에 하나인 MessageKit의 ViewController를 사용한다.
+class ChatViewController: MessagesViewController {//Dependencies중에 하나인 MessageKit의 MessagesViewController를 사용한다.
 
+    public var otherUserEmail:String
+    public var isNewConversation = false
+    
+    init(with email:String) {
+        otherUserEmail = email
+        super.init(nibName: nil, bundle: nil)   // MessagesViewController를 return하는 init
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     private var messages = [Message]()
     
     private let selfSender = Sender(photoURL: "",

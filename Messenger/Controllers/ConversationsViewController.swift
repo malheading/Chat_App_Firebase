@@ -45,8 +45,32 @@ class ConversationsViewController: UIViewController {
     @objc private func didTapComposeButton(){
         //New Conversation Create Controller
         let vc = NewConversationViewController()
+        vc.completion = {[weak self]result in
+            /*
+             print("\(result)")
+             result의 형태는 다음과 같다.
+             ["name" : "Joe Smith", "email":"joe-gmail-com"]
+             */
+            
+            self?.createNewConversation(result: result)
+        }
+        
         let navVC = UINavigationController(rootViewController: vc)
         present(navVC, animated: true)
+    }
+    
+    private func createNewConversation(result:[String:String]){
+        // ChatViewController 클래스의 object vc를 불러온다.
+        ///name: 대화 상대 이름, email: 대화 상대의 email이다. 헷갈리지 말 것
+        guard let name = result["name"], let email = result["email"]else{
+            print("(ConversationsViewController)Error!: Failed to get name and email.")
+            return
+        }
+        
+        let vc = ChatViewController(with: email)
+        vc.title = name    //대화 상대
+        vc.navigationItem.largeTitleDisplayMode = .never
+        navigationController?.pushViewController(vc, animated: true)
     }
     
     override func viewDidAppear(_ animated: Bool) {
