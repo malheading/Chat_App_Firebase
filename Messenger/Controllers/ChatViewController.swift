@@ -3,10 +3,11 @@
 //  Messenger
 //
 //  Created by 김정원 on 2021/05/07.
-//
+// 채팅방에 들어 갔을 때의 Controller
 
 import UIKit
 import MessageKit
+import InputBarAccessoryView
 
 struct Message:MessageType {
     var sender: SenderType
@@ -44,21 +45,44 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        messages.append(Message(sender: selfSender,
-                                messageId: "1",
-                                sentDate: Date(),
-                                kind: .text("Hello World Message")))
-        messages.append(Message(sender: selfSender,
-                                messageId: "1",
-                                sentDate: Date(),
-                                kind: .text("Hello World Message.Hello World Message.Hello World Message.Hello World Message.")))
+//        messages.append(Message(sender: selfSender,
+//                                messageId: "1",
+//                                sentDate: Date(),
+//                                kind: .text("Hello World Message")))
+//        messages.append(Message(sender: selfSender,
+//                                messageId: "1",
+//                                sentDate: Date(),
+//                                kind: .text("Hello World Message.Hello World Message.Hello World Message.Hello World Message.")))
         
         view.backgroundColor = .red
         
         messagesCollectionView.messagesDataSource = self
         messagesCollectionView.messagesLayoutDelegate = self
         messagesCollectionView.messagesDisplayDelegate = self
+        messageInputBar.delegate = self
     }
+}
+
+extension ChatViewController:InputBarAccessoryViewDelegate{
+    func inputBar(_ inputBar: InputBarAccessoryView, didPressSendButtonWith text: String) {
+        // 채팅방에서 Send Button을 눌렀을 때
+        // 비어있는 채팅은 보내지지 않도록
+        guard !text.replacingOccurrences(of: " ", with: "").isEmpty else{ // 비어있는 채팅이다.
+            return
+        }
+        
+        print("\(text)")
+        
+        if isNewConversation{   // 만약 대화가 처음이라면?
+            // Database에 새로운 대화를 생성
+            
+        }else{  // 만약 대화가 처음이 아니라면?
+            // 기존 Database에 추가(append)
+            
+        }
+        
+    }
+    
 }
 
 extension ChatViewController:MessagesDataSource, MessagesLayoutDelegate, MessagesDisplayDelegate{

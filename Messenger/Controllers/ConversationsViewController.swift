@@ -3,7 +3,7 @@
 //  Messenger
 //
 //  Created by 김정원 on 2021/02/10.
-//
+//  채팅 테이블뷰의 Controller
 
 import UIKit
 import FirebaseAuth
@@ -12,6 +12,8 @@ import JGProgressHUD
 class ConversationsViewController: UIViewController {
     
     private let spinner = JGProgressHUD(style: .dark)
+    public var email:String?    // 대화 상대의 email
+    public var name:String?     // 대화 상대의 이름 ( name )
     
     private let tableView:UITableView = {
         let table = UITableView()
@@ -51,7 +53,8 @@ class ConversationsViewController: UIViewController {
              result의 형태는 다음과 같다.
              ["name" : "Joe Smith", "email":"joe-gmail-com"]
              */
-            
+            self?.email = result["email"]
+            self?.name = result["name"]
             self?.createNewConversation(result: result)
         }
         
@@ -119,8 +122,9 @@ extension ConversationsViewController:UITableViewDelegate, UITableViewDataSource
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
-        let vc = ChatViewController()
-        vc.title = "Jenny Smith"    //대화 상대
+        let vc = ChatViewController(with: email ?? "Empty email")
+//        vc.title = "Jenny Smith"    //대화 상대
+        vc.title = self.name
         vc.navigationItem.largeTitleDisplayMode = .never
         navigationController?.pushViewController(vc, animated: true)
     }

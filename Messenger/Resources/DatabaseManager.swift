@@ -115,6 +115,32 @@ extension DatabaseManager{
     }
 }
 
+// Mark - Sending messages / conversations
+extension DatabaseManager {
+    // 사용되는 Message라는 데이터타입은 User Defined Struct 이다. Definition 참고
+    /// Create a new conversation with target user and email and first message sent
+    public func createNewConversation(with otherUserEmail:String, firstMessage:Message, completion: @escaping (Bool)->Void){
+        ///parameters: otherUserEmail: 상대방의 이메일, firstMessage: 대화방을 처음 만들 때 보낼 메시지
+    }
+    
+    /// email을 받았을 때, 그 사람과의 모든 대화를 return
+    public func getAllConversations(for email:String, completion: @escaping (Result<String,Error>)->Void){
+        
+    }
+    
+    /// ID를 받았을 때, 그 사람과의 모든 대화를 return?
+    public func getAllMessagesForConversations(with id:String, completion: @escaping (Result<String, Error>)->Void){
+        
+    }
+    
+    /// 목표 대화방에 메시지를 발신
+    public func sendMessage(to conversation:String, message:Message, completion:@escaping (Bool)->Void){
+        
+    }
+    
+}
+
+
 public enum DatabaseError:Error{
     case failedToFetch
 }
