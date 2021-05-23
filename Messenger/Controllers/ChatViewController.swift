@@ -38,9 +38,9 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
     
     private var messages = [Message]()
     
-    private let selfSender = Sender(photoURL: "",
+    private let selfSender = Sender(photoURL: UserDefaults.standard.value(forKey: "profile_picture_url") as? String ?? "",
                                     senderId: "1",
-                                    displayName: "Jeongwon Kim")    //추후에 Firebase에서 가져올 예정
+                                    displayName: UserDefaults.standard.value(forKey: "name") as? String ?? "Me")    //추후에 Firebase에서 가져올 예정
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -75,6 +75,7 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
         
         if isNewConversation{   // 만약 대화가 처음이라면?
             // Database에 새로운 대화를 생성
+            DatabaseManager.shared.createNewConversation(with: otherUserEmail, firstMessage: <#T##Message#>, completion: <#T##(Bool) -> Void#>)
             
         }else{  // 만약 대화가 처음이 아니라면?
             // 기존 Database에 추가(append)
