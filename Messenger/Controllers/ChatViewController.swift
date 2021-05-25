@@ -24,6 +24,15 @@ struct Sender:SenderType {
 
 class ChatViewController: MessagesViewController {//Dependencies중에 하나인 MessageKit의 MessagesViewController를 사용한다.
 
+    //DateFormatter : Expensive object이기 때문에 static으로 만들어서 계속 사용한다?? 아니면 클래스 내부에 public object로 만든다??
+    public static var dateFormatter:DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .long
+        formatter.locale = .current
+        return formatter
+    }
+    
     public var otherUserEmail:String
     public var isNewConversation = false
     
@@ -38,9 +47,26 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
     
     private var messages = [Message]()
     
-    private let selfSender = Sender(photoURL: UserDefaults.standard.value(forKey: "profile_picture_url") as? String ?? "",
-                                    senderId: "1",
-                                    displayName: UserDefaults.standard.value(forKey: "name") as? String ?? "Me")    //추후에 Firebase에서 가져올 예정
+    private var selfSender:Sender? {
+        guard let email = UserDefaults.standard.value(forKey: "email") as? String,
+              let photoURL = UserDefaults.standard.value(forKey: "profile_picture_url") as? String,
+              let name = UserDefaults.standard.value(forKey: "userFullName") as? String else{
+            print("Error(ChatViewController.swift)!: email or photoURL or userFullName in UserDefaults is nil.")
+//            print("\(UserDefaults.standard.value(forKey: "email"))")
+//            print("\(UserDefaults.standard.value(forKey: "profile_picture_url"))")
+//            print("\(UserDefaults.standard.value(forKey: "userFullName"))")
+            return Sender(photoURL: "", senderId: "DUMMY_SENDER", displayName: "DUMMY_SENDER")
+        }
+        let selfSender = Sender(photoURL: photoURL,
+                                senderId: email,
+                                displayName: name)
+        return selfSender
+    }
+    
+// // 초창기에 사용하던 코드
+//    private let selfSender = Sender(photoURL: UserDefaults.standard.value(forKey: "profile_picture_url") as? String ?? "",
+//                                    senderId: "1",
+//                                    displayName: UserDefaults.standard.value(forKey: "name") as? String ?? "Me")    //추후에 Firebase에서 가져올 예정
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -67,28 +93,57 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
     func inputBar(_ inputBar: InputBarAccessoryView, didPressSendButtonWith text: String) {
         // 채팅방에서 Send Button을 눌렀을 때
         // 비어있는 채팅은 보내지지 않도록
-        guard !text.replacingOccurrences(of: " ", with: "").isEmpty else{ // 비어있는 채팅이다.
-            return
+        guard !text.replacingOccurrences(of: " ", with: "").isEmpty,
+              let selfSender = self.selfSender,
+              let messageID = createMessageID() else{
+            return // 비어있는 채팅이다.
         }
         
         print("\(text)")
         
         if isNewConversation{   // 만약 대화가 처음이라면?
             // Database에 새로운 대화를 생성
-            DatabaseManager.shared.createNewConversation(with: otherUserEmail, firstMessage: <#T##Message#>, completion: <#T##(Bool) -> Void#>)
+            //20210523 : Message 만들어야 함.
+            let mmesage:Message = Message(sender: selfSender,
+                                          messageId: messageID,
+                                          sentDate: Date(),
+                                          kind: .text(text))
+            
+            DatabaseManager.shared.createNewConversation(with: otherUserEmail, firstMessage: mmesage, completion: {success in
+                if success{
+                    print("message success")
+                } else{
+                    print("message failed")
+                }
+            })
             
         }else{  // 만약 대화가 처음이 아니라면?
             // 기존 Database에 추가(append)
-            
         }
         
+    }
+    
+    private func createMessageID() -> String? {
+        /// Create messageID using senderEmail + datetime + otherEmail + randomInt
+        guard let currentUserEmail = UserDefaults.standard.value(forKey: "email") else{
+            return nil
+        }
+        let dateString = Self.dateFormatter.string(from: Date())
+        let newIdentifier = "\(otherUserEmail)_\(currentUserEmail)_\(dateString)"
+        
+        print("newIdentifier is: \(newIdentifier)")
+        return newIdentifier
     }
     
 }
 
 extension ChatViewController:MessagesDataSource, MessagesLayoutDelegate, MessagesDisplayDelegate{
     func currentSender() -> SenderType {
-        return selfSender
+        if let sender = selfSender{
+            return sender
+        }
+        fatalError("FatalError(ChatViewController.wift):! selfSender is nil.")
+        return Sender(photoURL: "", senderId: "DUMMY_SENDER_2", displayName: "DUMMY_SENDER_2")
     }
     
     func messageForItem(at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) -> MessageType {

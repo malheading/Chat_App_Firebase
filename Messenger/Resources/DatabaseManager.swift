@@ -118,9 +118,48 @@ extension DatabaseManager{
 // Mark - Sending messages / conversations
 extension DatabaseManager {
     // 사용되는 Message라는 데이터타입은 User Defined Struct 이다. Definition 참고
+    
+    /* database schema : 데이터베이스에 저장될 형식
+     
+     "ss010510@gmail.com"=>[
+        conversation=>[
+            "conversation_id": String,
+            "other_user_id" : String,
+            "last_message" =>[
+                "date" : Date(),
+                "last_message" : String or "message",
+                "is_read" : Bool
+            ]
+        ]
+     ]
+     
+     conversation_id =>[
+        "messages":[
+            "id":String,
+            "type": text or photo or video ...,
+            "contect" : String (text) or photo or video ...,
+            "date" : Date(),
+            "sender_email":String,
+            "is_read":Bool
+        ]
+     ]
+     
+     
+     */
+    
     /// Create a new conversation with target user and email and first message sent
     public func createNewConversation(with otherUserEmail:String, firstMessage:Message, completion: @escaping (Bool)->Void){
         ///parameters: otherUserEmail: 상대방의 이메일, firstMessage: 대화방을 처음 만들 때 보낼 메시지
+        // 현재 캐쉬된 Email을 먼저 확인한다.   --> 캐쉬된 Email은 safe-email이 아니다.
+        guard let currentEmail = UserDefaults.standard.value(forKey: "email") as? String else {
+            print("Error(DatabaseManager.swift)!: Failed to get currentEmail during createNewConversation.")
+            return
+        }
+        let safeEmail = DatabaseManager.safeEmail(emailAddress: currentEmail)
+        let ref = database.child("\(safeEmail)")
+        
+        ref.observeSingleEvent(of: .value, with: <#T##(DataSnapshot) -> Void#>)
+        
     }
     
     /// email을 받았을 때, 그 사람과의 모든 대화를 return
