@@ -10,16 +10,16 @@ import MessageKit
 import InputBarAccessoryView
 
 struct Message:MessageType {
-    var sender: SenderType
-    var messageId: String
-    var sentDate: Date
-    var kind: MessageKind
+    public var sender: SenderType
+    public var messageId: String
+    public var sentDate: Date
+    public var kind: MessageKind
 }
 
 struct Sender:SenderType {
-    var photoURL: String
-    var senderId: String
-    var displayName: String
+    public var photoURL: String
+    public var senderId: String
+    public var displayName: String
 }
 
 class ChatViewController: MessagesViewController {//Dependencies중에 하나인 MessageKit의 MessagesViewController를 사용한다.
@@ -110,6 +110,7 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
                                           kind: .text(text))
             
             DatabaseManager.shared.createNewConversation(with: otherUserEmail, firstMessage: mmesage, completion: {success in
+                // 내가 직접 만든 createNewConversation 에서 completion(true)를 하면 --> success = true
                 if success{
                     print("message success")
                 } else{

@@ -71,6 +71,7 @@ class ConversationsViewController: UIViewController {
         }
         
         let vc = ChatViewController(with: email)
+        vc.isNewConversation = true // 없던 채팅방에 새로 만들경우에는 필수 
         vc.title = name    //대화 상대
         vc.navigationItem.largeTitleDisplayMode = .never
         navigationController?.pushViewController(vc, animated: true)

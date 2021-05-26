@@ -122,20 +122,20 @@ extension DatabaseManager {
     /* database schema : 데이터베이스에 저장될 형식
      
      "ss010510@gmail.com"=>[
-        conversation=>[
-            "conversation_id": String,
-            "other_user_id" : String,
+        conversations=>[
+            ["conversation_id": String,
+            "other_user_email" : String,
             "last_message" =>[
-                "date" : Date(),
-                "last_message" : String or "message",
-                "is_read" : Bool
+                "date" : String of Date(),
+                "message" : String or "message",
+                "is_read" : Bool]
             ]
         ]
      ]
      
      conversation_id =>[
         "messages":[
-            "id":String,
+            "id":String,    // message_id
             "type": text or photo or video ...,
             "contect" : String (text) or photo or video ...,
             "date" : Date(),
@@ -158,8 +158,97 @@ extension DatabaseManager {
         let safeEmail = DatabaseManager.safeEmail(emailAddress: currentEmail)
         let ref = database.child("\(safeEmail)")
         
-        ref.observeSingleEvent(of: .value, with: <#T##(DataSnapshot) -> Void#>)
+        print("Debug: \(ref)")
         
+        ref.observeSingleEvent(of: .value) { snapshot in
+            guard var userNode = snapshot.value as? [String:Any] else { // check whethere userNode is exist
+                completion(false)   // createNewConversation에 대한 block completion
+                print("Error(DatabaseManager.swift)!: Failed to get userNode.")
+                return
+            }
+            
+            let dateString = ChatViewController.dateFormatter.string(from: firstMessage.sentDate)
+            var message:String = ""
+            switch firstMessage.kind{
+            case .text(let messageText):
+                message = messageText
+            case .attributedText(_):
+                break
+            case .photo(_):
+                break
+            case .video(_):
+                break
+            case .location(_):
+                break
+            case .emoji(_):
+                break
+            case .audio(_):
+                break
+            case .contact(_):
+                break
+            case .linkPreview(_):
+                break
+            case .custom(_):
+                break
+            }
+            
+            let newConversationData:[String:Any] = [    // database에 userNode --> "conversations"에 넣을 것
+                "id":firstMessage.messageId,
+                "other_user_email":otherUserEmail,
+                "last_message":[
+                    "date":dateString,  // database에 Date type은 못넣으니까 --> date formatter로 형변환(String) 필요.
+//                    "type":"message", // 만약에 type도 기록하고 싶은 경우에
+                    "message":message,
+                    "is_read":false
+                ]
+            ]
+            if var conversations = userNode["conversations"] as? [[String:Any]]{
+                // userNode --> "conversations" node exists == 전에 메시지를 보내면서 데이터베이스에 생성이 되었었었다.
+                conversations.append(newConversationData)
+                userNode["conversations"] = conversations
+                ref.setValue(userNode) { [weak self](error, databaseReference) in
+                    guard error==nil else{
+                        completion(false)
+                        print("Error(DatabaseManager.swift)!: Failed to set userNode to database!")
+                        return
+                    }
+                    // completion 블락을 바로 대입시킬 수 있다.
+                    self?.finishCreatingConversation(with: firstMessage.messageId, firstMessage: firstMessage, completion: completion)
+                    //completion(true)
+                }
+                
+            } else{ // userNode --> "conversations"를 만들어줘야 한다.
+                userNode["conversations"] = [newConversationData] // userNode는 database에서 snapshot을 찍어온 local value이므로, setValue로 database에 보내줘야한다.
+                ref.setValue(userNode) {[weak self] (error, databaseReference) in
+                    guard error==nil else{
+                        completion(false)
+                        print("Error(DatabaseManager.swift)!: Failed to set userNode to database!")
+                        return
+                    }
+                    
+                    // completion 블락을 바로 대입시킬 수 있다.
+                    self?.finishCreatingConversation(with: firstMessage.messageId, firstMessage: firstMessage, completion: completion)
+                    // completion(true)
+                }
+            }
+        }
+        
+    }
+    
+    /// 이 함수는 createNewConversation의 내부에서 작동하고, database에 노드를 만들기 위해서 생성한다.
+    private func finishCreatingConversation(with messgeID:String, firstMessage:Message, completion:@escaping (Bool)->Void){
+        // database에 conversation 노드를 만들어주는 함수.
+        // TODO: conversations 노드를 추가할 것
+//        conversation_id =>[
+//                "messages":[
+//                    "id":String,    // message_id
+//                    "type": text or photo or video ...,
+//                    "contect" : String (text) or photo or video ...,
+//                    "date" : Date(),
+//                    "sender_email":String,
+//                    "is_read":Bool
+//                ]
+//             ]
     }
     
     /// email을 받았을 때, 그 사람과의 모든 대화를 return
