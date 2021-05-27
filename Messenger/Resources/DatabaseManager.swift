@@ -236,19 +236,74 @@ extension DatabaseManager {
     }
     
     /// 이 함수는 createNewConversation의 내부에서 작동하고, database에 노드를 만들기 위해서 생성한다.
-    private func finishCreatingConversation(with messgeID:String, firstMessage:Message, completion:@escaping (Bool)->Void){
+    private func finishCreatingConversation(with messageID:String, firstMessage:Message, completion:@escaping (Bool)->Void){
         // database에 conversation 노드를 만들어주는 함수.
         // TODO: conversations 노드를 추가할 것
 //        conversation_id =>[
 //                "messages":[
 //                    "id":String,    // message_id
 //                    "type": text or photo or video ...,
-//                    "contect" : String (text) or photo or video ...,
+//                    "content" : String (text) or photo or video ...,
 //                    "date" : Date(),
 //                    "sender_email":String,
 //                    "is_read":Bool
 //                ]
 //             ]
+        guard let currentUserEmail = UserDefaults.standard.value(forKey: "email") as? String else {
+            print("Error(DatabaseManager.swift)!: Failed to get email from UserDefaults.")
+            completion(false)
+            return
+        }
+        
+        var message:String = ""
+        switch firstMessage.kind{
+        case .text(let messageText):
+            message = messageText
+        case .attributedText(_):
+            break
+        case .photo(_):
+            break
+        case .video(_):
+            break
+        case .location(_):
+            break
+        case .emoji(_):
+            break
+        case .audio(_):
+            break
+        case .contact(_):
+            break
+        case .linkPreview(_):
+            break
+        case .custom(_):
+            break
+        }
+        
+        let collectionMessage:[String:Any] = [
+            "id":firstMessage.messageId,
+            "type":firstMessage.kind.messageKindString,
+            "content":message,
+            "date":ChatViewController.dateFormatter.string(from: firstMessage.sentDate),
+            "sender_email":currentUserEmail,
+            "is_read":false
+        ]
+//        print("*****convo is : \(collectionMessage)******")
+        
+        let value:[String:Any] = [
+            "messages":[
+                collectionMessage
+            ]
+            
+        ]
+        
+        database.child("\(messageID)").setValue(value) { (error, databaseReference) in
+            guard error==nil else{
+                print("Error(DatabaseManager.swift)!: Failed in func finishCreatingConversation : \(error)")
+                completion(false)
+                return
+            }
+            completion(true)
+        }
     }
     
     /// email을 받았을 때, 그 사람과의 모든 대화를 return
