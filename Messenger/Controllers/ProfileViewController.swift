@@ -21,9 +21,63 @@ class ProfileViewController: UIViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         tableView.delegate = self
         tableView.dataSource = self
+        
+        tableView.tableHeaderView = createTableHeader()
         // Do any additional setup after loading the view.
     }
     
+    func createTableHeader()->UIView?{
+        guard let email = UserDefaults.standard.value(forKey: "email") as? String else{ // 로그인때 캐시에 저장한 이메일 정보를 불러온다.
+            print("Error!:Failed to load user email from UserDefaults.standard")
+            return nil
+        }
+        let safeEmail = DatabaseManager.safeEmail(emailAddress: email)  // DatabaseManager 클래스에 직접 만든 함수
+        let filename = safeEmail + "_profile_picture.png"
+        
+        let path = "images/"+filename   //데이터베이스에 있는 프로파일 이미지의 경로
+        
+        let headerView = UIView(frame: CGRect(x: 0,
+                                              y: 0,
+                                              width: self.view.width,
+                                              height: 300)) // UIView의 위치 및 사이즈(height는 고정)
+        headerView.backgroundColor = .link
+        
+        let imageView = UIImageView(frame: CGRect(x: (headerView.width-150)/2,
+                                                  y: 150/2,
+                                                  width: 150,
+                                                  height: 150)) // 실제 헤더뷰에 들어갈 이미지 컨테이너?
+        imageView.contentMode = .scaleAspectFill
+        imageView.backgroundColor = .white
+        imageView.layer.borderColor = UIColor.white.cgColor
+        imageView.layer.borderWidth = 3
+        imageView.layer.cornerRadius = imageView.width/2
+        imageView.layer.masksToBounds = true   // subView를 headerView에 맞추서 자를것인지?
+        
+        headerView.addSubview(imageView)
+        
+        StorageManager.shared.downloadURL(for: path, completion: {[weak self] result in
+            // result는 Result 클래스로, .success()의 반환값 또는 .failure()의 반환값으로 이루어져있다??
+            switch result{
+            case .success(let url):
+                self?.downloadImage(imageView: imageView, url:url)
+            case .failure(let error):
+                print("ProfileViewController.swift : Failed to get download url: \(error)")
+            }
+        })
+        
+        return headerView
+    }
+    func downloadImage(imageView:UIImageView, url:URL){
+        URLSession.shared.dataTask(with: url, completionHandler: {data, response, error in
+            guard let data=data, error==nil else{
+                return
+            }
+            DispatchQueue.main.async {  //이거 왜쓰는거임?
+                let image = UIImage(data: data)
+                imageView.image = image
+            }
+        }).resume() //URLSession의 dataTask에서 return하는 request는 'resume()'으로 활성화해야한다??
+    }
 }
 
 //extension을 추가함으로써 추가적인 상속을 더할 수 있다. (기존: UIViewController만 상속 -> 변경: UIViewController + UITableViewDataSource
