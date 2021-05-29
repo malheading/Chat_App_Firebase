@@ -9,17 +9,38 @@ import UIKit
 import FirebaseAuth
 import JGProgressHUD
 
+struct Conversation {
+    let id:String
+    let name:String
+    let otherUserEmail:String
+    let latestMessage:LatestMessage
+}
+
+struct LatestMessage {
+    let date:String
+    let text:String
+    let isRead:Bool
+}
+
+
 class ConversationsViewController: UIViewController {
     
     private let spinner = JGProgressHUD(style: .dark)
+    
+    private var conversations = [Conversation]()    // User Defined Struct의 배열
+    
     public var email:String?    // 대화 상대의 email
     public var name:String?     // 대화 상대의 이름 ( name )
+    
     
     private let tableView:UITableView = {
         let table = UITableView()
         table.isHidden = true
-        table.register(UITableViewCell.self,
-                       forCellReuseIdentifier: "cell")
+//        table.register(UITableViewCell.self,  // Part12 에서 데이터베스의 내용을 테이블뷰로 가져오려면 바껴야 한다.
+//                       forCellReuseIdentifier: "cell")
+        table.register(ConversationTableViewCell.self,
+                       forCellReuseIdentifier: "ConversationTableViewCell")
+        
         return table
     }()
     
@@ -42,6 +63,33 @@ class ConversationsViewController: UIViewController {
         view.addSubview(noConversationLabel)
         setupTableView()
         fetchConversations()
+        // database에서 기록되어 있는 대화들을 불러온다.
+        startListeningForConversations()
+    }
+    
+    private func startListeningForConversations(){
+        guard let email = UserDefaults.standard.value(forKey: "email") as? String else {
+            print("Error(ConversationsViewController.swift)!:Failed to get email from UserDefaults")
+            return
+        }
+        let safeEmail = DatabaseManager.safeEmail(emailAddress: email)
+        DatabaseManager.shared.getAllConversations(for: safeEmail) { [weak self]result in
+            switch result{
+            case .success(let conversations):
+                guard !conversations.isEmpty else {
+                    return  // conversation is empty.
+                }
+                self?.conversations = conversations
+                
+                DispatchQueue.main.async { // main thread에게 일하라고 명령
+                    self?.tableView.reloadData()    // tableView Update
+                }
+                
+            case .failure(let error):
+                print("ConversationsViewController.swift: Failed to get conversations fro database - error:\(error)")
+                return
+            }
+        }
     }
     
     @objc private func didTapComposeButton(){
@@ -110,24 +158,37 @@ class ConversationsViewController: UIViewController {
 
 extension ConversationsViewController:UITableViewDelegate, UITableViewDataSource{
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 1
+        return conversations.count  // fetch한 conversations의 개수를 return
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        let model = conversations[indexPath.row]
+        
+        let cell = tableView.dequeueReusableCell(withIdentifier: ConversationTableViewCell.identifier,
+                                                 for: indexPath) as! ConversationTableViewCell
+        
+        cell.configure(with: model) // cell configure??
+        
         cell.textLabel?.text = "Hello World!"
         cell.accessoryType = .disclosureIndicator
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let model = conversations[indexPath.row]
+        
         tableView.deselectRow(at: indexPath, animated: true)
         
-        let vc = ChatViewController(with: email ?? "Empty email")
-//        vc.title = "Jenny Smith"    //대화 상대
-        vc.title = self.name
+//        let vc = ChatViewController(with: email ?? "Empty email")
+        let vc = ChatViewController(with: model.otherUserEmail)
+        
+        vc.title = model.name
         vc.navigationItem.largeTitleDisplayMode = .never
         navigationController?.pushViewController(vc, animated: true)
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 120
     }
 }
 

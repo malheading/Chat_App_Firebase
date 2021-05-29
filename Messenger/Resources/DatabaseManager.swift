@@ -148,7 +148,7 @@ extension DatabaseManager {
      */
     
     /// Create a new conversation with target user and email and first message sent
-    public func createNewConversation(with otherUserEmail:String, firstMessage:Message, completion: @escaping (Bool)->Void){
+    public func createNewConversation(with otherUserEmail:String, name:String, firstMessage:Message, completion: @escaping (Bool)->Void){
         ///parameters: otherUserEmail: 상대방의 이메일, firstMessage: 대화방을 처음 만들 때 보낼 메시지
         // 현재 캐쉬된 Email을 먼저 확인한다.   --> 캐쉬된 Email은 safe-email이 아니다.
         guard let currentEmail = UserDefaults.standard.value(forKey: "email") as? String else {
@@ -158,7 +158,7 @@ extension DatabaseManager {
         let safeEmail = DatabaseManager.safeEmail(emailAddress: currentEmail)
         let ref = database.child("\(safeEmail)")
         
-        print("Debug: \(ref)")
+        //print("Debug: \(ref)")
         
         ref.observeSingleEvent(of: .value) { snapshot in
             guard var userNode = snapshot.value as? [String:Any] else { // check whethere userNode is exist
@@ -195,6 +195,7 @@ extension DatabaseManager {
             let newConversationData:[String:Any] = [    // database에 userNode --> "conversations"에 넣을 것
                 "id":firstMessage.messageId,
                 "other_user_email":otherUserEmail,
+                "name":name,
                 "last_message":[
                     "date":dateString,  // database에 Date type은 못넣으니까 --> date formatter로 형변환(String) 필요.
 //                    "type":"message", // 만약에 type도 기록하고 싶은 경우에
@@ -213,7 +214,7 @@ extension DatabaseManager {
                         return
                     }
                     // completion 블락을 바로 대입시킬 수 있다.
-                    self?.finishCreatingConversation(with: firstMessage.messageId, firstMessage: firstMessage, completion: completion)
+                    self?.finishCreatingConversation(with: name, messageID:firstMessage.messageId, firstMessage: firstMessage, completion: completion)
                     //completion(true)
                 }
                 
@@ -227,7 +228,7 @@ extension DatabaseManager {
                     }
                     
                     // completion 블락을 바로 대입시킬 수 있다.
-                    self?.finishCreatingConversation(with: firstMessage.messageId, firstMessage: firstMessage, completion: completion)
+                    self?.finishCreatingConversation(with:name, messageID:firstMessage.messageId, firstMessage: firstMessage, completion: completion)
                     // completion(true)
                 }
             }
@@ -236,7 +237,7 @@ extension DatabaseManager {
     }
     
     /// 이 함수는 createNewConversation의 내부에서 작동하고, database에 노드를 만들기 위해서 생성한다.
-    private func finishCreatingConversation(with messageID:String, firstMessage:Message, completion:@escaping (Bool)->Void){
+    private func finishCreatingConversation(with name:String, messageID:String, firstMessage:Message, completion:@escaping (Bool)->Void){
         // database에 conversation 노드를 만들어주는 함수.
         // TODO: conversations 노드를 추가할 것
 //        conversation_id =>[
@@ -285,7 +286,8 @@ extension DatabaseManager {
             "content":message,
             "date":ChatViewController.dateFormatter.string(from: firstMessage.sentDate),
             "sender_email":currentUserEmail,
-            "is_read":false
+            "is_read":false,
+            "name":name
         ]
 //        print("*****convo is : \(collectionMessage)******")
         
@@ -307,8 +309,35 @@ extension DatabaseManager {
     }
     
     /// email을 받았을 때, 그 사람과의 모든 대화를 return
-    public func getAllConversations(for email:String, completion: @escaping (Result<String,Error>)->Void){
-        
+    /// parameter email: database에서 검색하고자 하는 이메일
+    /// parameter completion: 함수의 수행이 끝나고 수행하는 동작??
+    public func getAllConversations(for email:String, completion: @escaping (Result<[Conversation],Error>)->Void){
+        database.child("\(email)/conversations").observe(.value) { (snapshot) in
+            guard let value = snapshot.value as? [[String:Any]] else{
+                completion(.failure(DatabaseError.failedToFetch))
+                return
+            }
+            let conversations:[Conversation] = value.compactMap { (dictionary) in
+                guard let conversationsID = dictionary["id"] as? String,
+                      let name = dictionary["name"] as? String,
+                      let otherUserEmail = dictionary["other_user_email"] as? String,
+                      let latestMessage = dictionary["last_message"] as? [String:Any],
+                      let date = latestMessage["date"] as? String,
+                      let isRead = latestMessage["is_read"] as? Bool,
+                      let message = latestMessage["message"] as? String else{
+                    return nil
+                }
+                
+                let latestMessageObject = LatestMessage(date: date,
+                                                        text: message,
+                                                        isRead: isRead)
+                return Conversation(id: conversationsID,
+                                    name: name,
+                                    otherUserEmail: otherUserEmail,
+                                    latestMessage: latestMessageObject)
+            }
+            
+        }
     }
     
     /// ID를 받았을 때, 그 사람과의 모든 대화를 return?

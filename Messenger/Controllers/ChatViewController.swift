@@ -128,7 +128,7 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
             return // 비어있는 채팅이다.
         }
         
-        print("\(text)")
+//        print("\(text)")
         
         if isNewConversation{   // 만약 대화가 처음이라면?
             // Database에 새로운 대화를 생성
@@ -138,7 +138,10 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
                                           sentDate: Date(),
                                           kind: .text(text))
             
-            DatabaseManager.shared.createNewConversation(with: otherUserEmail, firstMessage: mmesage, completion: {success in
+            DatabaseManager.shared.createNewConversation(with: otherUserEmail,
+                                                         name:self.title! /*현재 title이 대화 상대의 이름이다.*/ ,
+                                                         firstMessage: mmesage,
+                                                         completion: {success in
                 // 내가 직접 만든 createNewConversation 에서 completion(true)를 하면 --> success = true
                 if success{
                     print("message success")
