@@ -312,8 +312,10 @@ extension DatabaseManager {
     /// parameter email: database에서 검색하고자 하는 이메일
     /// parameter completion: 함수의 수행이 끝나고 수행하는 동작??
     public func getAllConversations(for email:String, completion: @escaping (Result<[Conversation],Error>)->Void){
-        database.child("\(email)/conversations").observe(.value) { (snapshot) in
+        database.child("\(email)/conversations").observe(.value) { snapshot in
             guard let value = snapshot.value as? [[String:Any]] else{
+//                let value = snapshot.value
+//                print("Value is not type of [[String:Any]] ==>\(value)")
                 completion(.failure(DatabaseError.failedToFetch))
                 return
             }
@@ -336,6 +338,7 @@ extension DatabaseManager {
                                     otherUserEmail: otherUserEmail,
                                     latestMessage: latestMessageObject)
             }
+            completion(.success(conversations))
             
         }
     }

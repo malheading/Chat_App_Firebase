@@ -86,7 +86,7 @@ class ConversationsViewController: UIViewController {
                 }
                 
             case .failure(let error):
-                print("ConversationsViewController.swift: Failed to get conversations fro database - error:\(error)")
+                print("ConversationsViewController.swift: Failed to get conversations from database - error:\(error)")
                 return
             }
         }
@@ -169,7 +169,7 @@ extension ConversationsViewController:UITableViewDelegate, UITableViewDataSource
         
         cell.configure(with: model) // cell configure??
         
-        cell.textLabel?.text = "Hello World!"
+//        cell.textLabel?.text = "Hello World!"
         cell.accessoryType = .disclosureIndicator
         return cell
     }

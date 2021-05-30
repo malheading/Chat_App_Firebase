@@ -51,8 +51,10 @@ final class StorageManager{
     
     ///Returns profile picture url
     public func downloadURL(for path: String, completion: @escaping (Result<URL, Error>) -> Void) {
+        print("Passed URL path is : \(path)")
         let reference = storage.child(path) //추신: storage는 클래스 내에서 정의한 reference이다.
         reference.downloadURL(completion: {url, error in
+            print("Downloading url is : \(url)")
             guard let url=url, error==nil else{
                 // url을 다운로드 실패했을 때, downloadURL 함수의 escaping으로 .failure(Error) 던진다
                 completion(.failure(StorageErrors.failedToDownloadURL))

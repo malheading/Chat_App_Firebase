@@ -74,7 +74,7 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
         fatalError("init(coder:) has not been implemented")
     }
     
-    private var messages = [Message]()
+    private var messages = [Message]()  // 현재 채팅방 사람의 메시지 Array
     
     private var selfSender:Sender? {
         guard let email = UserDefaults.standard.value(forKey: "email") as? String,
@@ -115,6 +115,11 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
         messagesCollectionView.messagesLayoutDelegate = self
         messagesCollectionView.messagesDisplayDelegate = self
         messageInputBar.delegate = self
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(true)
+        messageInputBar.inputTextView.becomeFirstResponder()
     }
 }
 
