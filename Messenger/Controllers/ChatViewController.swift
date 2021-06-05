@@ -64,10 +64,16 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
     
     public var otherUserEmail:String
     public var isNewConversation = false
+    private var conversationId:String?
     
-    init(with email:String) {
+    init(with email:String, id:String?) {   // id는 nil일 수도 있다.
         otherUserEmail = email
+        conversationId = id
         super.init(nibName: nil, bundle: nil)   // MessagesViewController를 return하는 init
+        
+        if let conversationId = conversationId {    // 만약에 conversationId가 nil이 아니면
+            listenForMessage(id:conversationId)  // database에 있는 이 사람과의 대화 불러오자
+        }
     }
     
     required init?(coder: NSCoder) {
@@ -86,8 +92,10 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
 //            print("\(UserDefaults.standard.value(forKey: "userFullName"))")
             return Sender(photoURL: "", senderId: "DUMMY_SENDER", displayName: "DUMMY_SENDER")
         }
-        let selfSender = Sender(photoURL: photoURL,
-                                senderId: email,
+        let safeEmail = DatabaseManager.safeEmail(emailAddress: email)
+        let selfSender = Sender(photoURL: "",   // selfSender와 Message의 Sender 일치해야하는 문제
+                                senderId: safeEmail,
+//                                displayName: "Me")
                                 displayName: name)
         return selfSender
     }
@@ -115,6 +123,28 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
         messagesCollectionView.messagesLayoutDelegate = self
         messagesCollectionView.messagesDisplayDelegate = self
         messageInputBar.delegate = self
+    }
+    
+    private func listenForMessage(id:String){    // database에서 메시지들을 가져오고 갱신한다.
+        DatabaseManager.shared.getAllMessagesForConversations(with: id) { [weak self]result in
+            switch result {
+            case .success(let messages):
+                guard !messages.isEmpty else {
+                    print("Warning(ChatViewController.swift)!: messages is empty.")
+                    return
+                }
+                print("messages[0].sender is : \(messages[0].sender)")
+                print("selfSender is : \(self?.selfSender)")
+                self?.messages = messages   // messages array는 [Message]
+                
+                DispatchQueue.main.async {
+                    self?.messagesCollectionView.reloadDataAndKeepOffset()  // messages 데이터 리로드
+                }
+                
+            case .failure(let error):
+                print("Error(ChatViewController.swift)!: Failed to getAllMessagesForConversations - \(error)")
+            }
+        }
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -157,6 +187,21 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
             
         }else{  // 만약 대화가 처음이 아니라면?
             // 기존 Database에 추가(append)
+            let mmesage:Message = Message(sender: selfSender,
+                                          messageId: messageID,
+                                          sentDate: Date(),
+                                          kind: .text(text))
+            DatabaseManager.shared.createNewConversation(with: otherUserEmail,
+                                                         name:self.title! /*현재 title이 대화 상대의 이름이다.*/ ,
+                                                         firstMessage: mmesage,
+                                                         completion: {success in
+                // 내가 직접 만든 createNewConversation 에서 completion(true)를 하면 --> success = true
+                if success{
+                    print("message success")
+                } else{
+                    print("message failed")
+                }
+            })
         }
         
     }
@@ -179,13 +224,14 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
     
 }
 
-extension ChatViewController:MessagesDataSource, MessagesLayoutDelegate, MessagesDisplayDelegate{
+extension ChatViewController:MessagesDataSource, MessagesLayoutDelegate, MessagesDisplayDelegate{   // Message가 어떻게 보일지 결정하는 Delegates
     func currentSender() -> SenderType {
-        if let sender = selfSender{
-            return sender
+        guard let sender = selfSender else{
+            fatalError("FatalError(ChatViewController.wift):! selfSender is nil.")
+            return Sender(photoURL: "", senderId: "DUMMY", displayName: "DUMMY")
         }
-        fatalError("FatalError(ChatViewController.wift):! selfSender is nil.")
-        return Sender(photoURL: "", senderId: "DUMMY_SENDER_2", displayName: "DUMMY_SENDER_2")
+        return sender
+//        return Sender(photoURL: "", senderId: "DUMMY_SENDER_2", displayName: "DUMMY_SENDER_2")
     }
     
     func messageForItem(at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) -> MessageType {

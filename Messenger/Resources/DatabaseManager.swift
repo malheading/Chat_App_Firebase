@@ -151,8 +151,9 @@ extension DatabaseManager {
     public func createNewConversation(with otherUserEmail:String, name:String, firstMessage:Message, completion: @escaping (Bool)->Void){
         ///parameters: otherUserEmail: 상대방의 이메일, firstMessage: 대화방을 처음 만들 때 보낼 메시지
         // 현재 캐쉬된 Email을 먼저 확인한다.   --> 캐쉬된 Email은 safe-email이 아니다.
-        guard let currentEmail = UserDefaults.standard.value(forKey: "email") as? String else {
-            print("Error(DatabaseManager.swift)!: Failed to get currentEmail during createNewConversation.")
+        guard let currentEmail = UserDefaults.standard.value(forKey: "email") as? String,
+              let currentName = UserDefaults.standard.value(forKey: "userFullName") as? String else {
+            print("Error(DatabaseManager.swift)!: Failed to get currentEmail or current Nameduring createNewConversation.")
             return
         }
         let safeEmail = DatabaseManager.safeEmail(emailAddress: currentEmail)
@@ -160,7 +161,7 @@ extension DatabaseManager {
         
         //print("Debug: \(ref)")
         
-        ref.observeSingleEvent(of: .value) { snapshot in
+        ref.observeSingleEvent(of: .value) { [weak self] snapshot in
             guard var userNode = snapshot.value as? [String:Any] else { // check whethere userNode is exist
                 completion(false)   // createNewConversation에 대한 block completion
                 print("Error(DatabaseManager.swift)!: Failed to get userNode.")
@@ -203,6 +204,29 @@ extension DatabaseManager {
                     "is_read":false
                 ]
             ]
+            
+            let recipient_newConversationData:[String:Any] = [    // database에 userNode --> "conversations"에 넣을 것
+                "id":firstMessage.messageId,
+                "other_user_email":safeEmail,
+                "name":currentName,
+                "last_message":[
+                    "date":dateString,  // database에 Date type은 못넣으니까 --> date formatter로 형변환(String) 필요.
+//                    "type":"message", // 만약에 type도 기록하고 싶은 경우에
+                    "message":message,
+                    "is_read":false
+                ]
+            ]
+            
+            self?.database.child("\(otherUserEmail)/conversations").observeSingleEvent(of: .value) { [weak self] snapshot in
+                if var conversations = snapshot.value as? [[String:Any]]{
+                    // append
+                    conversations.append(recipient_newConversationData)
+                    self?.database.child("\(otherUserEmail)/conversations").setValue(conversations)
+                } else { // create new node
+                    self?.database.child("\(otherUserEmail)/conversations").setValue([recipient_newConversationData])
+                }
+            }
+            
             if var conversations = userNode["conversations"] as? [[String:Any]]{
                 // userNode --> "conversations" node exists == 전에 메시지를 보내면서 데이터베이스에 생성이 되었었었다.
                 conversations.append(newConversationData)
@@ -255,6 +279,7 @@ extension DatabaseManager {
             completion(false)
             return
         }
+        let safeEmail = DatabaseManager.safeEmail(emailAddress: currentUserEmail)   // safeEmail로 변환
         
         var message:String = ""
         switch firstMessage.kind{
@@ -285,7 +310,8 @@ extension DatabaseManager {
             "type":firstMessage.kind.messageKindString,
             "content":message,
             "date":ChatViewController.dateFormatter.string(from: firstMessage.sentDate),
-            "sender_email":currentUserEmail,
+//            "sender_email":currentUserEmail,
+            "sender_email":safeEmail,
             "is_read":false,
             "name":name
         ]
@@ -344,8 +370,40 @@ extension DatabaseManager {
     }
     
     /// ID를 받았을 때, 그 사람과의 모든 대화를 return?
-    public func getAllMessagesForConversations(with id:String, completion: @escaping (Result<String, Error>)->Void){
-        
+    public func getAllMessagesForConversations(with id:String, completion: @escaping (Result<[Message], Error>)->Void){
+        // ID is MessageID not a user ID
+        database.child("\(id)/messages").observe(.value) { snapshot in
+            guard let value = snapshot.value as? [[String:Any]] else{
+                //                let value = snapshot.value
+                //                print("Value is not type of [[String:Any]] ==>\(value)")
+                completion(.failure(DatabaseError.failedToFetch))
+                return
+            }
+            let messages:[Message] = value.compactMap { (dictionary) in // compactMap은 dictionary 반복하면서 return하는 형태로 array를 뽑아준다.
+                guard let name = dictionary["name"] as? String,
+                      let isRead = dictionary["is_read"] as? Bool,
+                      let messageID = dictionary["id"] as? String,
+                      let content = dictionary["content"] as? String,
+                      let senderEmail = dictionary["sender_email"] as? String,
+                      let type = dictionary["type"] as? String,
+                      let dateString = dictionary["date"] as? String,
+                      let date = ChatViewController.dateFormatter.date(from: dateString) else {
+                    return nil
+                }
+                let sender = Sender(photoURL: "",
+                                    senderId: senderEmail,
+                                    displayName: name)
+                
+                /// Future ToDo: 현재는 텍스트밖에 안되지만, 추후에 사진이나 동영상 등은 kind를 바꿔서 Message를 return해야 한다.
+                return Message(sender: sender,
+                               messageId: messageID,
+                               sentDate: date,
+                               kind: .text(content))
+            }
+            
+            completion(.success(messages))
+            
+        }
     }
     
     /// 목표 대화방에 메시지를 발신

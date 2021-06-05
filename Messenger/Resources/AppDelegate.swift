@@ -89,7 +89,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
         print("Did signed in with google")
         
         let email = user.profile.email as String //  유저 이메일
-        let userFullName = user.profile.name as String  // 유저 이름
+        let userFullName = "\(user.profile.givenName ?? "") \(user.profile.familyName ?? "")"
+//        let userFullName = user.profile.name as String  // 유저 이름 --> 김정원 으로 나타난다..?
         
         UserDefaults.standard.set(email, forKey: "email")   // 현재 로그인한 사람의 이메일을 캐쉬에 저장?
         UserDefaults.standard.setValue(userFullName, forKey: "userFullName")

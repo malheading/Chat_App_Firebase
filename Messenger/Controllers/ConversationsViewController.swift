@@ -118,7 +118,7 @@ class ConversationsViewController: UIViewController {
             return
         }
         
-        let vc = ChatViewController(with: email)
+        let vc = ChatViewController(with: email, id:nil)    // 새로운 채팅방을 만들기 때문에 일단 id = nil
         vc.isNewConversation = true // 없던 채팅방에 새로 만들경우에는 필수 
         vc.title = name    //대화 상대
         vc.navigationItem.largeTitleDisplayMode = .never
@@ -180,7 +180,7 @@ extension ConversationsViewController:UITableViewDelegate, UITableViewDataSource
         tableView.deselectRow(at: indexPath, animated: true)
         
 //        let vc = ChatViewController(with: email ?? "Empty email")
-        let vc = ChatViewController(with: model.otherUserEmail)
+        let vc = ChatViewController(with: model.otherUserEmail, id: model.id)
         
         vc.title = model.name
         vc.navigationItem.largeTitleDisplayMode = .never
