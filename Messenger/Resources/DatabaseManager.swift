@@ -28,7 +28,7 @@ final class DatabaseManager {
 
 extension DatabaseManager {
     public func getDataFor(path:String, completion: @escaping (Result<Any,Error>)->Void){
-        database.child(path).observeSingleEvent(of: .value) { snapshot in
+        database.child(path).observe(.value) {  snapshot in
             guard let value = snapshot.value as? [String:Any] else {
                 print("Error(DatabaseManager.swift)!: Failed to fetch \(DatabaseError.failedToFetch)\n")
                 completion(.failure(DatabaseError.failedToFetch))
@@ -386,12 +386,12 @@ extension DatabaseManager {
     public func getAllMessagesForConversations(with id:String, completion: @escaping (Result<[Message], Error>)->Void){
         // ID is MessageID not a user ID
         database.child("\(id)/messages").observe(.value) { snapshot in
+            
             guard let value = snapshot.value as? [[String:Any]] else{
-                //                let value = snapshot.value
-                //                print("Value is not type of [[String:Any]] ==>\(value)")
                 completion(.failure(DatabaseError.failedToFetch))
                 return
             }
+            
             let messages:[Message] = value.compactMap { (dictionary) in // compactMap은 dictionary 반복하면서 return하는 형태로 array를 뽑아준다.
                 guard let name = dictionary["name"] as? String,
                       let isRead = dictionary["is_read"] as? Bool,
@@ -401,6 +401,7 @@ extension DatabaseManager {
                       let type = dictionary["type"] as? String,
                       let dateString = dictionary["date"] as? String,
                       let date = ChatViewController.dateFormatter.date(from: dateString) else {
+                    print("Error(DatabaseManager)!: Getting data from dictionary failed!\n")
                     return nil
                 }
                 let sender = Sender(photoURL: "",
@@ -413,9 +414,7 @@ extension DatabaseManager {
                                sentDate: date,
                                kind: .text(content))
             }
-            
             completion(.success(messages))
-            
         }
     }
     

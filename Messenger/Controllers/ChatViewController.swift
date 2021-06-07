@@ -58,7 +58,8 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .long
-        formatter.locale = .current
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.dateFormat = "MMM dd, yyyy HH:mm:ss"
         return formatter
     }
     
@@ -68,6 +69,7 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
     
     init(with email:String, id:String?) {   // id는 nil일 수도 있다.
         otherUserEmail = email
+        let otherUserSafeEmail = DatabaseManager.safeEmail(emailAddress: email)
         conversationId = id
         super.init(nibName: nil, bundle: nil)   // MessagesViewController를 return하는 init
         
@@ -130,7 +132,7 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
             switch result {
             case .success(let messages):
                 guard !messages.isEmpty else {
-                    print("Warning(ChatViewController.swift)!: messages is empty.")
+                    print("Error(ChatViewController)!: messages is empty. check : \(messages)\n")
                     return
                 }
                 print("messages[0].sender is : \(messages[0].sender)")
@@ -187,7 +189,7 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
             
         }else{  // 만약 대화가 처음이 아니라면?
             // 기존 Database에 추가(append)
-            DatabaseManager.shared.sendMessage(to: otherUserEmail, message: mmesage) { success in
+            DatabaseManager.shared.sendMessage(to: self.otherUserEmail, message: mmesage) { success in
                 if success{
                     print("Sending message success")
                 }else{
