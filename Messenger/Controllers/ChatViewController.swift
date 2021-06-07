@@ -163,23 +163,23 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
             return // 비어있는 채팅이다.
         }
         
-//        print("\(text)")
+        let mmesage:Message = Message(sender: selfSender,
+                                      messageId: messageID,
+                                      sentDate: Date(),
+                                      kind: .text(text))
         
         if isNewConversation{   // 만약 대화가 처음이라면?
             // Database에 새로운 대화를 생성
             //20210523 : Message 만들어야 함.
-            let mmesage:Message = Message(sender: selfSender,
-                                          messageId: messageID,
-                                          sentDate: Date(),
-                                          kind: .text(text))
             
             DatabaseManager.shared.createNewConversation(with: otherUserEmail,
                                                          name:self.title! /*현재 title이 대화 상대의 이름이다.*/ ,
                                                          firstMessage: mmesage,
-                                                         completion: {success in
+                                                         completion: {[weak self]success in
                 // 내가 직접 만든 createNewConversation 에서 completion(true)를 하면 --> success = true
                 if success{
                     print("message success")
+                    self?.isNewConversation = false
                 } else{
                     print("message failed")
                 }
@@ -187,21 +187,13 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
             
         }else{  // 만약 대화가 처음이 아니라면?
             // 기존 Database에 추가(append)
-            let mmesage:Message = Message(sender: selfSender,
-                                          messageId: messageID,
-                                          sentDate: Date(),
-                                          kind: .text(text))
-            DatabaseManager.shared.createNewConversation(with: otherUserEmail,
-                                                         name:self.title! /*현재 title이 대화 상대의 이름이다.*/ ,
-                                                         firstMessage: mmesage,
-                                                         completion: {success in
-                // 내가 직접 만든 createNewConversation 에서 completion(true)를 하면 --> success = true
+            DatabaseManager.shared.sendMessage(to: otherUserEmail, message: mmesage) { success in
                 if success{
-                    print("message success")
-                } else{
-                    print("message failed")
+                    print("Sending message success")
+                }else{
+                    print("Failed to send message")
                 }
-            })
+            }
         }
         
     }

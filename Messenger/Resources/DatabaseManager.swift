@@ -26,6 +26,19 @@ final class DatabaseManager {
     //    }
 }
 
+extension DatabaseManager {
+    public func getDataFor(path:String, completion: @escaping (Result<Any,Error>)->Void){
+        database.child(path).observeSingleEvent(of: .value) { snapshot in
+            guard let value = snapshot.value as? [String:Any] else {
+                print("Error(DatabaseManager.swift)!: Failed to fetch \(DatabaseError.failedToFetch)\n")
+                completion(.failure(DatabaseError.failedToFetch))
+                return
+            }
+            completion(.success(value))
+        }
+    }
+}
+
 // MARK:- Account Management
 
 extension DatabaseManager{

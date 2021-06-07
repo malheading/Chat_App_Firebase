@@ -196,6 +196,24 @@ class LoginViewController: UIViewController {
             }
             let user=result.user
             
+            let safeEmail = DatabaseManager.safeEmail(emailAddress: email)
+            DatabaseManager.shared.getDataFor(path: safeEmail) { result in
+                switch result {
+                case .success(let data):
+                    guard let userData = data as? [String:Any] else{
+                        print("Error(LoginViewControoler)!: userData is not the type of [String:Any] \n")
+                        return
+                    }
+                    let firstName = userData["first_name"]
+                    let lastName = userData["last_name"]
+                    let userFullName = "\(lastName) \(firstName)"
+                    UserDefaults.standard.setValue(userFullName, forKey: "userFullName")    // Firebas Auth로 로그인할 때 이름을 캐쉬
+                    
+                case .failure(let error):
+                    print("Error(LoginViewController.wift)!:Failed to get data for user with : \(error)\n")
+                }
+            }
+            
             UserDefaults.standard.set(email, forKey: "email")   // 현재 로그인한 사람의 이메일을 캐쉬에 저장?
 //            UserDefaults.standard.setValue(userFullName, forKey: "userFullName")  // userFullName을 가져오고 캐쉬해준다.
             
