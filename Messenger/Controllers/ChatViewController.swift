@@ -189,7 +189,14 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
             
         }else{  // 만약 대화가 처음이 아니라면?
             // 기존 Database에 추가(append)
-            DatabaseManager.shared.sendMessage(to: self.otherUserEmail, message: mmesage) { success in
+            guard let conversationId = self.conversationId else {
+                return
+            }
+            guard let title=self.title else{
+                print("Error(ChatViewController-inputBar)!: Failed to get title as String")
+                return
+            }
+            DatabaseManager.shared.sendMessage(to: conversationId, name:title, newMessage: mmesage) { success in
                 if success{
                     print("Sending message success")
                 }else{

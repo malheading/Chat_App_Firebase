@@ -419,8 +419,75 @@ extension DatabaseManager {
     }
     
     /// 목표 대화방에 메시지를 발신
-    public func sendMessage(to conversation:String, message:Message, completion:@escaping (Bool)->Void){
+    public func sendMessage(to conversation:String, name:String, newMessage:Message, completion:@escaping (Bool)->Void){
+        // add new message to message
+        // update sender latest message
+        // update recipient latest message
         
+        database.child("\(conversation)/messages").observeSingleEvent(of: .value) { [weak self]snapshot in
+            guard let strongSelf = self else{
+                return
+            }
+            guard var currentMessages=snapshot.value as? [[String:Any]] else{
+                print("Error(DatabaseManager)!: Failed to observe the conversation ID")
+                completion(false)
+                return
+            }
+            
+            guard let currentUserEmail = UserDefaults.standard.value(forKey: "email") as? String else {
+                print("Error(DatabaseManager-sendMessage)!: Failed to get email from UserDefaults.")
+                completion(false)
+                return
+            }
+            let safeEmail = DatabaseManager.safeEmail(emailAddress: currentUserEmail)   // safeEmail로 변환
+            
+            var message:String = ""
+            switch newMessage.kind{
+            case .text(let messageText):
+                message = messageText
+            case .attributedText(_):
+                break
+            case .photo(_):
+                break
+            case .video(_):
+                break
+            case .location(_):
+                break
+            case .emoji(_):
+                break
+            case .audio(_):
+                break
+            case .contact(_):
+                break
+            case .linkPreview(_):
+                break
+            case .custom(_):
+                break
+            }
+            
+            let newMessageEntry:[String:Any] = [
+                "id":newMessage.messageId,
+                "type":newMessage.kind.messageKindString,
+                "content":message,
+                "date":ChatViewController.dateFormatter.string(from: newMessage.sentDate),
+    //            "sender_email":currentUserEmail,
+                "sender_email":safeEmail,
+                "is_read":false,
+                "name":name
+            ]
+            
+            currentMessages.append(newMessageEntry) // snapshot값에 추가
+            strongSelf.database.child("\(conversation)/messages").setValue(currentMessages) { error, reference in
+                guard error==nil else {
+                    print("Error(DatabaseManager-sendMessage)!: Failed to setValue to database with \(String(describing: error))\n")
+                    completion(false)
+                    return
+                }
+                print("Message Sending success")
+                completion(true)
+            }
+            
+        }
     }
     
 }
