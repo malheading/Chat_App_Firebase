@@ -208,6 +208,8 @@ class LoginViewController: UIViewController {
                     let lastName = userData["last_name"]
                     let userFullName = "\(lastName) \(firstName)"
                     UserDefaults.standard.setValue(userFullName, forKey: "userFullName")    // Firebas Auth로 로그인할 때 이름을 캐쉬
+                    let profileImageURL:String = "\(safeEmail)_profile_picture.png"
+                    UserDefaults.standard.setValue(profileImageURL, forKey: "profile_picture_url")
                     
                 case .failure(let error):
                     print("Error(LoginViewController.wift)!:Failed to get data for user with : \(error)\n")

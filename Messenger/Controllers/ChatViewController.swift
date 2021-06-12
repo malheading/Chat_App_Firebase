@@ -89,9 +89,9 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
               let photoURL = UserDefaults.standard.value(forKey: "profile_picture_url") as? String,
               let name = UserDefaults.standard.value(forKey: "userFullName") as? String else{
             print("Error(ChatViewController.swift)!: email or photoURL or userFullName in UserDefaults is nil.")
-//            print("\(UserDefaults.standard.value(forKey: "email"))")
-//            print("\(UserDefaults.standard.value(forKey: "profile_picture_url"))")
-//            print("\(UserDefaults.standard.value(forKey: "userFullName"))")
+            print("\(UserDefaults.standard.value(forKey: "email"))")
+            print("\(UserDefaults.standard.value(forKey: "profile_picture_url"))")
+            print("\(UserDefaults.standard.value(forKey: "userFullName"))")
             return Sender(photoURL: "", senderId: "DUMMY_SENDER", displayName: "DUMMY_SENDER")
         }
         let safeEmail = DatabaseManager.safeEmail(emailAddress: email)
@@ -196,6 +196,8 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
                 print("Error(ChatViewController-inputBar)!: Failed to get title as String")
                 return
             }
+            print("selfSender is : \(self.selfSender?.displayName)")
+            
             DatabaseManager.shared.sendMessage(to: conversationId, name:title, newMessage: mmesage) { success in
                 if success{
                     print("Sending message success")
