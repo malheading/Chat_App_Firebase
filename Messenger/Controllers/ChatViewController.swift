@@ -125,6 +125,8 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
         messagesCollectionView.messagesLayoutDelegate = self
         messagesCollectionView.messagesDisplayDelegate = self
         messageInputBar.delegate = self
+        
+        messagesCollectionView.scrollToLastItem()
     }
     
     private func listenForMessage(id:String){    // database에서 메시지들을 가져오고 갱신한다.

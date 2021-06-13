@@ -353,8 +353,10 @@ extension DatabaseManager {
     public func getAllConversations(for email:String, completion: @escaping (Result<[Conversation],Error>)->Void){
         database.child("\(email)/conversations").observe(.value) { snapshot in
             guard let value = snapshot.value as? [[String:Any]] else{
-//                let value = snapshot.value
-//                print("Value is not type of [[String:Any]] ==>\(value)")
+                print("***************************************************\n")
+                print("email:\(email) \n snapshot:\(snapshot.value)\n")
+                print("***************************************************\n")
+
                 completion(.failure(DatabaseError.failedToFetch))
                 return
             }
