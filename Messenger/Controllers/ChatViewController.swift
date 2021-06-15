@@ -68,8 +68,8 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
     private var conversationId:String?
     
     init(with email:String, id:String?) {   // id는 nil일 수도 있다.
-        otherUserEmail = email
         let otherUserSafeEmail = DatabaseManager.safeEmail(emailAddress: email)
+        otherUserEmail = otherUserSafeEmail
         conversationId = id
         super.init(nibName: nil, bundle: nil)   // MessagesViewController를 return하는 init
         
@@ -200,7 +200,7 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
             }
             print("selfSender is : \(self.selfSender?.displayName)")
             
-            DatabaseManager.shared.sendMessage(to: conversationId, name:title, newMessage: mmesage) { success in
+            DatabaseManager.shared.sendMessage(to: conversationId, otherUserEmail:otherUserEmail, name:title, newMessage: mmesage) { success in
                 if success{
                     print("Sending message success")
                 }else{

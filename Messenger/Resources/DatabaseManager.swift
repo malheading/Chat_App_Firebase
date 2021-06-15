@@ -421,11 +421,15 @@ extension DatabaseManager {
     }
     
     /// 목표 대화방에 메시지를 발신
-    public func sendMessage(to conversation:String, name:String, newMessage:Message, completion:@escaping (Bool)->Void){
-        // add new message to message
-        // update sender latest message
+    public func sendMessage(to conversation:String, otherUserEmail:String, name:String, newMessage:Message, completion:@escaping (Bool)->Void){
+        ///parameter conversation: ConversationID
+        ///parameter otherUserEmail: Other user's safe email type of String
+        ///parameter name: Other user's name
+        ///parameter newMessage: A Message that current user want to send.
+        
         // update recipient latest message
         
+        //--> Add new message to message
         database.child("\(conversation)/messages").observeSingleEvent(of: .value) { [weak self]snapshot in
             guard let strongSelf = self else{
                 return
@@ -467,11 +471,12 @@ extension DatabaseManager {
                 break
             }
             
+            let dateString:String = ChatViewController.dateFormatter.string(from: newMessage.sentDate)
             let newMessageEntry:[String:Any] = [
                 "id":newMessage.messageId,
                 "type":newMessage.kind.messageKindString,
                 "content":message,
-                "date":ChatViewController.dateFormatter.string(from: newMessage.sentDate),
+                "date":dateString,
     //            "sender_email":currentUserEmail,
                 "sender_email":safeEmail,
                 "is_read":false,
@@ -485,11 +490,51 @@ extension DatabaseManager {
                     completion(false)
                     return
                 }
-                print("Message Sending success")
-                completion(true)
+                // -->update sender latest message
+                strongSelf.database.child("\(safeEmail)/conversations").observeSingleEvent(of: .value) { snapshot in
+                    guard var snapshotSender=snapshot as? [[String:Any]] else{
+                        completion(false)
+                        print("Error(DatabaseManager->sendMessage)!: snapshot is not a type of [[String:Any]]\n")
+                        return
+                    }
+                    let updatedValue:[String:Any] = [
+                        "date": dateString,
+                        "is_read":"false",
+                        "message":message
+                    ]
+                    var targetConversation:[String:Any]?
+                    var position = 0
+                    
+                    for currentConversation in snapshotSender{
+                        if let currentID = currentConversation["id"] as? String, currentID == conversation{
+                            targetConversation = currentConversation
+                            break;
+                        }
+                        position += 1
+                    }
+                    targetConversation?["last_message"] = updatedValue
+                    guard let targetConversation = targetConversation else {
+                        print("Error(DatabaseManager-sendMessage)!: targetConversation is nil\n")
+                        completion(false)
+                        return
+                    }
+
+                    snapshotSender[position] = targetConversation
+                    strongSelf.database.child("\(safeEmail)/conversations").setValue(snapshotSender) { error, _ in
+                        guard error==nil else{
+                            print("Error(DatabaseManager-sendMessage)!: Failed to setValue of snapshotSender to the current User\n")
+                            completion(false)
+                            return
+                        }
+//                        completion(true)
+                    }
+                    
+                }
+                
             }
             
         }
+        
     }
     
 }
