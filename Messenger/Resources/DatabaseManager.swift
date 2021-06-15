@@ -368,6 +368,8 @@ extension DatabaseManager {
                       let date = latestMessage["date"] as? String,
                       let isRead = latestMessage["is_read"] as? Bool,
                       let message = latestMessage["message"] as? String else{
+                          print("**********************DEBUG TRAP*********************")
+                          
                     return nil
                 }
                 
@@ -426,8 +428,6 @@ extension DatabaseManager {
         ///parameter otherUserEmail: Other user's safe email type of String
         ///parameter name: Other user's name
         ///parameter newMessage: A Message that current user want to send.
-        
-        // update recipient latest message
         
         //--> Add new message to message
         database.child("\(conversation)/messages").observeSingleEvent(of: .value) { [weak self]snapshot in
@@ -492,14 +492,14 @@ extension DatabaseManager {
                 }
                 // -->update sender latest message
                 strongSelf.database.child("\(safeEmail)/conversations").observeSingleEvent(of: .value) { snapshot in
-                    guard var snapshotSender=snapshot as? [[String:Any]] else{
+                    guard var snapshotSender=snapshot.value as? [[String:Any]] else{
                         completion(false)
                         print("Error(DatabaseManager->sendMessage)!: snapshot is not a type of [[String:Any]]\n")
                         return
                     }
                     let updatedValue:[String:Any] = [
                         "date": dateString,
-                        "is_read":"false",
+                        "is_read":false,
                         "message":message
                     ]
                     var targetConversation:[String:Any]?
@@ -527,6 +527,46 @@ extension DatabaseManager {
                             return
                         }
 //                        completion(true)
+                        // -->update recipient latest message
+                        strongSelf.database.child("\(otherUserEmail)/conversations").observeSingleEvent(of: .value, with: { snapshot in
+                            guard var snapshotReceiver=snapshot.value as? [[String:Any]] else{
+                                completion(false)
+                                print("Error(DatabaseManager->sendMessage->Receiver)!: snapshot is not a type of [[String:Any]]\n")
+                                return
+                            }
+                            let updatedValue:[String:Any] = [
+                                "date": dateString,
+                                "is_read":false,
+                                "message":message
+                            ]
+                            var targetConversation:[String:Any]?
+                            var position = 0
+                            
+                            for currentConversation in snapshotReceiver{
+                                if let currentID = currentConversation["id"] as? String, currentID == conversation{
+                                    targetConversation = currentConversation
+                                    break;
+                                }
+                                position += 1
+                            }
+                            targetConversation?["last_message"] = updatedValue
+                            guard let targetConversation = targetConversation else {
+                                print("Error(DatabaseManager->sendMessage->Receiver)!: targetConversation is nil\n")
+                                completion(false)
+                                return
+                            }
+
+                            snapshotReceiver[position] = targetConversation
+                            strongSelf.database.child("\(otherUserEmail)/conversations").setValue(snapshotReceiver) { error, _ in
+                                guard error==nil else{
+                                    print("Error(DatabaseManager->sendMessage->Receiver)!: Failed to setValue of snapshotSender to the other User\n")
+                                    completion(false)
+                                    return
+                                }
+                                completion(true)
+                            }
+                            
+                        })
                     }
                     
                 }

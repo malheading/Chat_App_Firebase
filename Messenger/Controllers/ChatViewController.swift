@@ -137,8 +137,8 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
                     print("Error(ChatViewController)!: messages is empty. check : \(messages)\n")
                     return
                 }
-                print("messages[0].sender is : \(messages[0].sender)")
-                print("selfSender is : \(self?.selfSender)")
+//                print("messages[0].sender is : \(messages[0].sender)")
+//                print("selfSender is : \(self?.selfSender)")
                 self?.messages = messages   // messages array는 [Message]
                 
                 DispatchQueue.main.async {
@@ -202,9 +202,9 @@ extension ChatViewController:InputBarAccessoryViewDelegate{
             
             DatabaseManager.shared.sendMessage(to: conversationId, otherUserEmail:otherUserEmail, name:title, newMessage: mmesage) { success in
                 if success{
-                    print("Sending message success")
+                    print("Sending message success : ChatViewController -> sendMessage")
                 }else{
-                    print("Failed to send message")
+                    print("Failed to send message : ChatViewController -> sendMessage")
                 }
             }
         }
