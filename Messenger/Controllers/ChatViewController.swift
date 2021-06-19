@@ -132,6 +132,7 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
         messagesCollectionView.messagesDataSource = self
         messagesCollectionView.messagesLayoutDelegate = self
         messagesCollectionView.messagesDisplayDelegate = self
+        messagesCollectionView.messageCellDelegate = self
         messageInputBar.delegate = self
         self.setupInputButton()
         
@@ -385,7 +386,31 @@ extension ChatViewController:MessagesDataSource, MessagesLayoutDelegate, Message
         default:
             break
         }
+    }   // end of configureMediaMessageImageView
+}   //end of extension
+
+extension ChatViewController:MessageCellDelegate{
+    func didTapImage(in cell: MessageCollectionViewCell) {
+        /// You can get a reference to the `MessageType` for the cell by using `UICollectionView`'s
+        /// `indexPath(for: cell)` method. Then using the returned `IndexPath` with the `MessagesDataSource`
+        /// method `messageForItem(at:indexPath:messagesCollectionView)`.
+        let myErrorPlacer = "didTapImage"
+        guard let indexPath = messagesCollectionView.indexPath(for: cell) as? IndexPath,
+        let message = self.messageForItem(at: indexPath, in: messagesCollectionView) as? Message else {
+            return
+        }
+        switch message.kind{
+        case .photo(let media):
+            guard let media = media as? Media,
+                  let imageUrl = media.url else {
+                      print("Error(ChatViewController-\(myErrorPlacer)!: Failed to get media as? Media \n")
+                      return
+                  }
+            let vc = PhotoViewerViewController(with: imageUrl)
+            navigationController?.pushViewController(vc, animated: true)
+        default:
+            break
+        }
         
     }
-    
 }
