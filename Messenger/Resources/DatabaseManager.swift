@@ -7,6 +7,7 @@
 
 import Foundation
 import FirebaseDatabase
+import MessageKit
 
 //final을 붙이면, subclass형성은 불가한 클래스 생성
 final class DatabaseManager {
@@ -413,10 +414,33 @@ extension DatabaseManager {
                                     displayName: name)
                 
                 /// Future ToDo: 현재는 텍스트밖에 안되지만, 추후에 사진이나 동영상 등은 kind를 바꿔서 Message를 return해야 한다.
+                var finalKind:MessageKind?
+                if (type == "text") {  // type이 단순 텍스트이면?
+                    finalKind = .text(content)
+                } else if (type == "photo") {
+                    guard let imageUrl = URL(string: content),
+                          let placeholder = UIImage(systemName: "plus") else {
+                              return nil
+                          }
+                    let screenBounds = UIScreen.main.bounds
+
+                    let media = Media(url: imageUrl,
+                                      image: nil,
+                                      placeholderImage: placeholder,
+                                      size: CGSize(width: screenBounds.width/2, height: screenBounds.width/2))
+                    finalKind = .photo(media)
+                } else{
+                    finalKind = .text(content)  // 아무런 kind도 아니면? --> 그냥 단순 text로 보낸다.
+                }
+
+                guard let finalKind = finalKind else {
+                    return nil
+                }
+                
                 return Message(sender: sender,
                                messageId: messageID,
                                sentDate: date,
-                               kind: .text(content))
+                               kind: finalKind)
             }
             completion(.success(messages))
         }
@@ -453,7 +477,10 @@ extension DatabaseManager {
                 message = messageText
             case .attributedText(_):
                 break
-            case .photo(_):
+            case .photo(let mediaItem):
+                if let targetURLString = mediaItem.url?.absoluteString{
+                    message = targetURLString
+                }
                 break
             case .video(_):
                 break

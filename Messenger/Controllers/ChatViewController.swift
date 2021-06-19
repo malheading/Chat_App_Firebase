@@ -8,12 +8,20 @@
 import UIKit
 import MessageKit
 import InputBarAccessoryView
+import SDWebImage
 
 struct Message:MessageType {
     public var sender: SenderType
     public var messageId: String
     public var sentDate: Date
     public var kind: MessageKind
+}
+
+struct Media:MediaItem {
+    var url: URL?
+    var image: UIImage?
+    var placeholderImage: UIImage   // This is not optional ==> 무조건 입력해줘야 하는 변수
+    var size: CGSize    // This is not optional ==> 무조건 입력해줘야 하는 변수
 }
 
 // MessageKind 아래에 String을 하나 만들어준다.
@@ -125,8 +133,65 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
         messagesCollectionView.messagesLayoutDelegate = self
         messagesCollectionView.messagesDisplayDelegate = self
         messageInputBar.delegate = self
+        self.setupInputButton()
         
         messagesCollectionView.scrollToLastItem()
+    }
+    
+    private func setupInputButton(){
+        let button = InputBarButtonItem()   // messageInputBar에 넣는 버튼 이름은 InputBarButtonItem
+        button.setSize(CGSize(width: 35, height: 35), animated: false)
+        button.setImage(UIImage(systemName: "paperclip"), for: .normal)
+        button.onTouchUpInside { [weak self]inputBarButton in
+            self?.presentInputActionSheet()
+        }
+        
+        messageInputBar.setLeftStackViewWidthConstant(to: 36, animated: false)  // 36은 left stack view 한개의 width
+        messageInputBar.setStackViewItems([button], forStack: .left, animated: false)
+    }
+    private func presentInputActionSheet(){
+        let actionSheet = UIAlertController(title: "Attach Media",
+                                            message: "Choose the type of media",
+                                            preferredStyle: .actionSheet)
+        
+        actionSheet.addAction(UIAlertAction(title: "Photo", style: .default, handler: { [weak self]action in
+//            사진을 찍거나 첨부하여 보내도록
+            self?.presentPhotoInputActionSheet()
+        }))
+        actionSheet.addAction(UIAlertAction(title: "Video", style: .default, handler: { [weak self]action in
+            
+        }))
+        actionSheet.addAction(UIAlertAction(title: "Audio", style: .default, handler: { [weak self]action in
+            
+        }))
+        actionSheet.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        
+        present(actionSheet, animated: true)
+    }
+    private func presentPhotoInputActionSheet(){
+        let actionSheet = UIAlertController(title: "Attach Photo",
+                                            message: "Take a new photo?\nSelect a photo?",
+                                            preferredStyle: .actionSheet)
+        actionSheet.addAction(UIAlertAction(title: "Camera", style: .default, handler: { [weak self]action in
+//            새로운 사진을 찍고 첨부를 하고자 할 때
+            let picker = UIImagePickerController()
+            picker.sourceType = .camera
+            picker.delegate = self
+            picker.allowsEditing = true
+            self?.present(picker, animated: true)
+            
+        }))
+        
+        actionSheet.addAction(UIAlertAction(title: "Gallery", style: .default, handler: { [weak self]action in
+            let picker = UIImagePickerController()
+            picker.sourceType = .photoLibrary
+            picker.delegate = self
+            picker.allowsEditing = true
+            self?.present(picker, animated: true)
+        }))
+        actionSheet.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil)) // cancle할 때는 아무런 동작을 안하게
+        
+        present(actionSheet, animated: true)
     }
     
     private func listenForMessage(id:String){    // database에서 메시지들을 가져오고 갱신한다.
@@ -154,6 +219,61 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(true)
         messageInputBar.inputTextView.becomeFirstResponder()
+    }
+}
+
+extension ChatViewController:UIImagePickerControllerDelegate, UINavigationControllerDelegate{
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true, completion: nil)
+    }
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        picker.dismiss(animated: true, completion: nil)
+        guard let image = info[UIImagePickerController.InfoKey.editedImage] as? UIImage,
+        let imageData = image.pngData(),
+        let messageID = createMessageID() else {
+            print("Error(ChatViewController-imagePickerController)!: Failed to get image from camera\n")
+            return
+        }
+        
+        let fileName = "photo_message_" + messageID.replacingOccurrences(of: " ", with: "-") + ".png"
+        
+        //Upload image
+        StorageManager.shared.uploadMessagePhoto(with: imageData, fileName: fileName, completion: {[weak self] result in
+            guard let strongSelf = self,
+                  let conversationId = strongSelf.conversationId,
+                  let name = strongSelf.title,
+                  let messageIdOfChat = strongSelf.conversationId,
+                  let selfSender = strongSelf.selfSender,
+                  let placeholder = UIImage(systemName: "plus") else {
+                      print("Error(ChatViewController-uploadMessagePhoto)!: Failed to unwrap some variables \n")
+                      return
+                  }
+            
+            switch result {
+            case .success(let urlString):
+                // Ready to send message
+                let media = Media(url: URL(string: urlString),
+                                  image: nil,
+                                  placeholderImage: placeholder,
+                                  size: .zero)
+                
+                let message:Message = Message(sender: selfSender,
+                                              messageId: messageIdOfChat,
+                                              sentDate: Date(),
+                                              kind: .photo(media))
+                
+                DatabaseManager.shared.sendMessage(to: conversationId, otherUserEmail: strongSelf.otherUserEmail, name: name, newMessage: message, completion: {success in
+                    if success{
+                        print("Succeeded photo message sending.\n ")
+                    } else {
+                        print("Failed photo message sending.\n ")
+                    }
+                })
+            case .failure(let error):
+                print("Error(ChatViewController-uploadMessagePhoto)!: Failed to upload message photo : \(error)")
+            }
+        })
+        //Send message
     }
 }
 
@@ -247,5 +367,25 @@ extension ChatViewController:MessagesDataSource, MessagesLayoutDelegate, Message
         return messages.count
     }
     
+    func configureMediaMessageImageView(_ imageView: UIImageView, for message: MessageType, at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) {
+        let myErrorPlacer = "configureMediaMessageImageView"
+        guard let message = message as? Message else {
+            print("Error(ChatViewController-\(myErrorPlacer)!: Failed to get message as? Message \n")
+            return
+        }
+        
+        switch message.kind{
+        case .photo(let media):
+            guard let media = media as? Media,
+                  let imageUrl = media.url else {
+                      print("Error(ChatViewController-\(myErrorPlacer)!: Failed to get media as? Media \n")
+                      return
+                  }
+            imageView.sd_setImage(with: imageUrl, completed: nil)
+        default:
+            break
+        }
+        
+    }
     
 }
