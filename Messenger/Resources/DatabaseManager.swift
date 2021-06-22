@@ -8,6 +8,7 @@
 import Foundation
 import FirebaseDatabase
 import MessageKit
+import AVFoundation
 
 //final을 붙이면, subclass형성은 불가한 클래스 생성
 final class DatabaseManager {
@@ -390,7 +391,10 @@ extension DatabaseManager {
     /// ID를 받았을 때, 그 사람과의 모든 대화를 return?
     public func getAllMessagesForConversations(with id:String, completion: @escaping (Result<[Message], Error>)->Void){
         // ID is MessageID not a user ID
-        database.child("\(id)/messages").observe(.value) { snapshot in
+        database.child("\(id)/messages").observe(.value) { [weak self]snapshot in
+            guard let strongSelf = self else{
+                return
+            }
             
             guard let value = snapshot.value as? [[String:Any]] else{
                 completion(.failure(DatabaseError.failedToFetch))
@@ -429,6 +433,20 @@ extension DatabaseManager {
                                       placeholderImage: placeholder,
                                       size: CGSize(width: screenBounds.width/2, height: screenBounds.width/2))
                     finalKind = .photo(media)
+                }else if (type == "video") {
+                    guard let videoUrl = URL(string: content),
+                          let placeholder = strongSelf.getThumbnailImage(forUrl: videoUrl) else {   //Thumbnail 이미지 생성
+                              print("Error(DatabaseManager-getAllMessages...)!:Failed to get videoUrl and placeholder!")
+                              return nil
+                          }
+                    // Thumbnail 이미지를 다운로드
+                    let screenBounds = UIScreen.main.bounds
+
+                    let media = Media(url: videoUrl,
+                                      image: nil,
+                                      placeholderImage: placeholder,
+                                      size: CGSize(width: screenBounds.width/2, height: screenBounds.width/2))
+                    finalKind = .video(media)
                 } else{
                     finalKind = .text(content)  // 아무런 kind도 아니면? --> 그냥 단순 text로 보낸다.
                 }
@@ -444,6 +462,19 @@ extension DatabaseManager {
             }
             completion(.success(messages))
         }
+    }
+    
+    private func getThumbnailImage(forUrl url:URL) -> UIImage?{
+        let asset: AVAsset = AVAsset(url: url)
+            let imageGenerator = AVAssetImageGenerator(asset: asset)
+
+            do {
+                let thumbnailImage = try imageGenerator.copyCGImage(at: CMTimeMake(value: 1, timescale: 60) , actualTime: nil)
+                return UIImage(cgImage: thumbnailImage)
+            } catch let error {
+                print(error)
+            }
+            return nil
     }
     
     /// 목표 대화방에 메시지를 발신

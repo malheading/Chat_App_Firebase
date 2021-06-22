@@ -9,6 +9,8 @@ import UIKit
 import MessageKit
 import InputBarAccessoryView
 import SDWebImage
+import AVFoundation
+import AVKit
 
 struct Message:MessageType {
     public var sender: SenderType
@@ -478,6 +480,17 @@ extension ChatViewController:MessageCellDelegate{
                   }
             let vc = PhotoViewerViewController(with: imageUrl)
             navigationController?.pushViewController(vc, animated: true)
+        case .video(let media):
+            guard let media = media as? Media,
+                  let videoUrl = media.url else{
+                print("Error(ChatViewController-\(myErrorPlacer)!: Failed to get media as? Media(Video) \n")
+                return
+            }
+            let vc = AVPlayerViewController()
+            let player = AVPlayer(url: videoUrl)
+            vc.player = player
+            self.present(vc,animated: true)
+            player.play()
         default:
             break
         }
