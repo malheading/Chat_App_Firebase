@@ -160,7 +160,7 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
             self?.presentPhotoInputActionSheet()
         }))
         actionSheet.addAction(UIAlertAction(title: "Video", style: .default, handler: { [weak self]action in
-            
+            self?.presentVideoInputActionSheet()
         }))
         actionSheet.addAction(UIAlertAction(title: "Audio", style: .default, handler: { [weak self]action in
             
@@ -187,6 +187,33 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
             let picker = UIImagePickerController()
             picker.sourceType = .photoLibrary
             picker.delegate = self
+            picker.allowsEditing = true
+            self?.present(picker, animated: true)
+        }))
+        actionSheet.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil)) // cancle할 때는 아무런 동작을 안하게
+        
+        present(actionSheet, animated: true)
+    }
+    
+    private func presentVideoInputActionSheet(){
+        let actionSheet = UIAlertController(title: "Attach Video",
+                                            message: "Take a new video?\nSelect a video?",
+                                            preferredStyle: .actionSheet)
+        actionSheet.addAction(UIAlertAction(title: "Camera", style: .default, handler: { [weak self]action in
+//            새로운 사진을 찍고 첨부를 하고자 할 때
+            let picker = UIImagePickerController()
+            picker.sourceType = .camera
+            picker.delegate = self
+            picker.mediaTypes = ["public.movie"]
+            picker.allowsEditing = true
+            self?.present(picker, animated: true)
+        }))
+        
+        actionSheet.addAction(UIAlertAction(title: "Gallery", style: .default, handler: { [weak self]action in
+            let picker = UIImagePickerController()
+            picker.sourceType = .photoLibrary
+            picker.delegate = self
+            picker.mediaTypes = ["public.movie"]
             picker.allowsEditing = true
             self?.present(picker, animated: true)
         }))
@@ -228,53 +255,96 @@ extension ChatViewController:UIImagePickerControllerDelegate, UINavigationContro
         picker.dismiss(animated: true, completion: nil)
     }
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        // 이미지든 동영상이든 컨트롤러에서 선태이 끝났을 때?
         picker.dismiss(animated: true, completion: nil)
-        guard let image = info[UIImagePickerController.InfoKey.editedImage] as? UIImage,
-        let imageData = image.pngData(),
-        let messageID = createMessageID() else {
-            print("Error(ChatViewController-imagePickerController)!: Failed to get image from camera\n")
-            return
-        }
         
-        let fileName = "photo_message_" + messageID.replacingOccurrences(of: " ", with: "-") + ".png"
+        guard let messageID = createMessageID(),
+              let conversationId = self.conversationId,
+              let name = self.title,
+              let messageIdOfChat = self.conversationId,
+              let selfSender = self.selfSender else {
+                  print ("Error(ChatViewController-imagePickerController)!: Failed to create messageID \n")
+                  return
+              }
         
-        //Upload image
-        StorageManager.shared.uploadMessagePhoto(with: imageData, fileName: fileName, completion: {[weak self] result in
-            guard let strongSelf = self,
-                  let conversationId = strongSelf.conversationId,
-                  let name = strongSelf.title,
-                  let messageIdOfChat = strongSelf.conversationId,
-                  let selfSender = strongSelf.selfSender,
-                  let placeholder = UIImage(systemName: "plus") else {
-                      print("Error(ChatViewController-uploadMessagePhoto)!: Failed to unwrap some variables \n")
-                      return
-                  }
-            
-            switch result {
-            case .success(let urlString):
-                // Ready to send message
-                let media = Media(url: URL(string: urlString),
-                                  image: nil,
-                                  placeholderImage: placeholder,
-                                  size: .zero)
+        if let image = info[UIImagePickerController.InfoKey.editedImage] as? UIImage, let imageData = image.pngData() {
+            // Image message를 보낼때?
+            let fileName = "photo_message_" + messageID.replacingOccurrences(of: " ", with: "-") + ".png"
+            //Upload image
+            StorageManager.shared.uploadMessagePhoto(with: imageData, fileName: fileName, completion: {[weak self] result in
+                guard let strongSelf = self,
+                      
+                      let placeholder = UIImage(systemName: "plus") else {
+                          print("Error(ChatViewController-uploadMessagePhoto)!: Failed to unwrap some variables \n")
+                          return
+                      }
                 
-                let message:Message = Message(sender: selfSender,
-                                              messageId: messageIdOfChat,
-                                              sentDate: Date(),
-                                              kind: .photo(media))
-                
-                DatabaseManager.shared.sendMessage(to: conversationId, otherUserEmail: strongSelf.otherUserEmail, name: name, newMessage: message, completion: {success in
-                    if success{
-                        print("Succeeded photo message sending.\n ")
-                    } else {
-                        print("Failed photo message sending.\n ")
-                    }
-                })
-            case .failure(let error):
-                print("Error(ChatViewController-uploadMessagePhoto)!: Failed to upload message photo : \(error)")
+                switch result {
+                case .success(let urlString):
+                    // Ready to send message
+                    let media = Media(url: URL(string: urlString),
+                                      image: nil,
+                                      placeholderImage: placeholder,
+                                      size: .zero)
+                    
+                    let message:Message = Message(sender: selfSender,
+                                                  messageId: messageIdOfChat,
+                                                  sentDate: Date(),
+                                                  kind: .photo(media))
+                    
+                    DatabaseManager.shared.sendMessage(to: conversationId, otherUserEmail: strongSelf.otherUserEmail, name: name, newMessage: message, completion: {success in
+                        if success{
+                            print("Succeeded photo message sending.\n ")
+                        } else {
+                            print("Failed photo message sending.\n ")
+                        }
+                    })
+                case .failure(let error):
+                    print("Error(ChatViewController-uploadMessagePhoto)!: Failed to upload message photo : \(error)")
+                }
+            })
+            //Send message
+        } else {    // Video를 고르는 경우에는??
+            guard let videoUrl = info[.mediaURL] as? URL else{ // video local url?
+                return
             }
-        })
-        //Send message
+            let fileName = "video_message_" + messageID.replacingOccurrences(of: " ", with: "-") + ".mov"
+            //TODO: Upload Video url to the storageManager <--- currently creating function "uploadMessageVideo"
+            
+            StorageManager.shared.uploadMessageVideo(with: videoUrl, fileName: fileName, completion: {[weak self] result in
+                guard let strongSelf = self,
+                      
+                      let placeholder = UIImage(systemName: "plus") else {
+                          print("Error(ChatViewController-uploadMessageVideo)!: Failed to unwrap some variables \n")
+                          return
+                      }
+                
+                switch result {
+                case .success(let urlString):
+                    // Ready to send message
+                    let media = Media(url: URL(string: urlString),
+                                      image: nil,
+                                      placeholderImage: placeholder,
+                                      size: .zero)
+                    
+                    let message:Message = Message(sender: selfSender,
+                                                  messageId: messageIdOfChat,
+                                                  sentDate: Date(),
+                                                  kind: .video(media))
+                    
+                    DatabaseManager.shared.sendMessage(to: conversationId, otherUserEmail: strongSelf.otherUserEmail, name: name, newMessage: message, completion: {success in
+                        if success{
+                            print("Succeeded video message sending.\n ")
+                        } else {
+                            print("Failed video message sending.\n ")
+                        }
+                    })
+                case .failure(let error):
+                    print("Error(ChatViewController-uploadMessageVideo)!: Failed to upload message video : \(error)")
+                }
+            })
+            
+        }   // End of if~else
     }
 }
 

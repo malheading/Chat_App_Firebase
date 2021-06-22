@@ -482,7 +482,10 @@ extension DatabaseManager {
                     message = targetURLString
                 }
                 break
-            case .video(_):
+            case .video(let mediaItem):
+                if let targetURLString = mediaItem.url?.absoluteString{
+                    message = targetURLString
+                }
                 break
             case .location(_):
                 break
