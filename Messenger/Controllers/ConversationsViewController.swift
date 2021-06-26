@@ -16,6 +16,11 @@ struct Conversation {
     let latestMessage:LatestMessage
 }
 
+struct SearchResult {
+    let name: String
+    let email: String
+}
+
 struct LatestMessage {
     let date:String
     let text:String
@@ -101,8 +106,8 @@ class ConversationsViewController: UIViewController {
              result의 형태는 다음과 같다.
              ["name" : "Joe Smith", "email":"joe-gmail-com"]
              */
-            self?.email = result["email"]
-            self?.name = result["name"]
+            self?.email = result.email
+            self?.name = result.name
             self?.createNewConversation(result: result)
         }
         
@@ -110,13 +115,14 @@ class ConversationsViewController: UIViewController {
         present(navVC, animated: true)
     }
     
-    private func createNewConversation(result:[String:String]){
+    private func createNewConversation(result:SearchResult){
         // ChatViewController 클래스의 object vc를 불러온다.
         ///name: 대화 상대 이름, email: 대화 상대의 email이다. 헷갈리지 말 것
-        guard let name = result["name"], let email = result["email"]else{
-            print("(ConversationsViewController)Error!: Failed to get name and email.")
-            return
-        }
+        guard let name = result.name as? String,
+              let email = result.email as? String else{
+                  print("(ConversationsViewController)Error!: Failed to get name and email.")
+                  return
+              }
         
         let vc = ChatViewController(with: email, id:nil)    // 새로운 채팅방을 만들기 때문에 일단 id = nil
         vc.isNewConversation = true // 없던 채팅방에 새로 만들경우에는 필수 

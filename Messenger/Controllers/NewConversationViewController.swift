@@ -10,12 +10,13 @@ import JGProgressHUD
 
 class NewConversationViewController: UIViewController {
 
-    public var completion:(([String:String])->Void)?
+    public var completion:((SearchResult)->Void)?
     
     private let spinner = JGProgressHUD(style: .dark)
     
-    private var users = [[String:String]]() //empty array create
-    private var results = [[String:String]]() //empty result array
+    private var users = [SearchResult]() //empty array create
+//    private var results = [[String:String]]() //empty result array
+    private var results = [SearchResult]()
     private var hasFetched = false  // default value of hasFetched is false
     
     private let searchBar:UISearchBar = {
@@ -27,8 +28,8 @@ class NewConversationViewController: UIViewController {
     private let tableView:UITableView = {//사람의 검색 결과를 보여줄 테이블뷰
         let table = UITableView()
         table.isHidden = true
-        table.register(UITableViewCell.self,
-                       forCellReuseIdentifier: "cell")
+        table.register(NewConversationTableViewCell.self,
+                       forCellReuseIdentifier: NewConversationTableViewCell.identifier)
         return table
     }()
     
@@ -83,8 +84,12 @@ extension NewConversationViewController:UITableViewDelegate, UITableViewDataSour
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.textLabel?.text = results[indexPath.row]["name"]
+        let cell = tableView.dequeueReusableCell(withIdentifier: NewConversationTableViewCell.identifier,
+                                                 for: indexPath) as! NewConversationTableViewCell
+        
+//        cell.textLabel?.text = results[indexPath.row].name
+        let model = results[indexPath.row]
+        cell.configure(with:model)
         return cell
     }
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -126,7 +131,15 @@ extension NewConversationViewController:UISearchBarDelegate{
                 switch result{
                 case.success(let userCollection):
                     self?.hasFetched = true
-                    self?.users = userCollection
+                    let userCollectionMapped: [SearchResult] = userCollection.compactMap { dicArray in
+                        guard let name = dicArray["name"],
+                              let email = dicArray["email"] else {
+                                  return nil
+                              }
+                        return SearchResult(name: name, email: email)
+                    }
+                    
+                    self?.users = userCollectionMapped
                     self?.filterUsers(with: query)
                 case.failure(let error):
                     print("Error004!: Failed to completion of getAllUsers\(error)")
@@ -145,8 +158,16 @@ extension NewConversationViewController:UISearchBarDelegate{
         }
         self.spinner.dismiss(animated: true)
         
-        var result:[[String:String]] = self.users.filter({
-            guard let name = $0["name"]?.lowercased() else{
+        var result:[SearchResult] = self.users.filter({
+            guard let myEmail = UserDefaults.standard.value(forKey: "email") as? String else {
+                return false
+            }
+            let mySafeEmail = DatabaseManager.safeEmail(emailAddress: myEmail)
+            guard $0.email != mySafeEmail else{
+                return false
+            }
+            
+            guard let name = $0.name.lowercased() as? String else{
                 return false
             }
             return name.hasPrefix(term.lowercased())
