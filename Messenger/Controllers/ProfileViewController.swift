@@ -14,6 +14,8 @@ class ProfileViewController: UIViewController {
     
     @IBOutlet var tableView: UITableView!
     
+    private var loginObserver:NSObjectProtocol?
+    
     let data=["Log Out"]
     
     override func viewDidLoad() {
@@ -23,6 +25,19 @@ class ProfileViewController: UIViewController {
         tableView.dataSource = self
         
         tableView.tableHeaderView = createTableHeader()
+        
+        loginObserver = NotificationCenter.default.addObserver(forName: .didLogInNotification,
+                                                               object: nil,
+                                                               queue: .main,
+                                                               using: {[weak self] _ in
+            guard let strongSelf = self else{
+                return
+            }
+            
+            strongSelf.tableView.tableHeaderView = strongSelf.createTableHeader()
+            // 목표가 완료되면(profile tableHeaderView Load) --> Obserber를 제거해야한다.
+        })
+        
         // Do any additional setup after loading the view.
     }
     
@@ -31,6 +46,11 @@ class ProfileViewController: UIViewController {
             print("Error!:Failed to load user email from UserDefaults.standard")
             return nil
         }
+        
+        if let observer = loginObserver {   // 로그인 -> 프로필 업데이트 -> 옵저버 제거
+            NotificationCenter.default.removeObserver(observer)
+        }
+        
         let safeEmail = DatabaseManager.safeEmail(emailAddress: email)  // DatabaseManager 클래스에 직접 만든 함수
         let filename = safeEmail + "_profile_picture.png"
         

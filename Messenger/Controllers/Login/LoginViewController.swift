@@ -95,12 +95,12 @@ class LoginViewController: UIViewController {
                                                                object: nil,
                                                                queue: .main,
                                                                using: {[weak self] _ in
-                                                                guard let strongSelf = self else{
-                                                                    return
-                                                                }
-                                                                
-                                                                strongSelf.dismiss(animated: true, completion: nil)
-                                                               })
+            guard let strongSelf = self else{
+                return
+            }
+            
+            strongSelf.dismiss(animated: true, completion: nil)
+        })
         
         // 구글아이디가 이미 있는 경우에는 자동으로 로그인 됩니다.
         GIDSignIn.sharedInstance()?.presentingViewController = self
@@ -220,6 +220,9 @@ class LoginViewController: UIViewController {
 //            UserDefaults.standard.setValue(userFullName, forKey: "userFullName")  // userFullName을 가져오고 캐쉬해준다.
             
             print("Logged in with user: \(email)")
+            
+            NotificationCenter.default.post(name: .didLogInNotification, object: nil)   // 나 로그인 했어요 라고 Flag 띄운다고 생각하자
+            
             strongSelf.navigationController?.dismiss(animated: true, completion: nil)   // 현재 컨트롤러(로그인 컨트롤러)를 제거한다?
             
         })
@@ -294,6 +297,8 @@ extension LoginViewController:LoginButtonDelegate{
             
             UserDefaults.standard.set(email, forKey: "email")   // 현재 로그인한 사람의 이메일을 캐쉬에 저장?
             UserDefaults.standard.set(userFullName, forKey: "userFullName")
+            
+            NotificationCenter.default.post(name: .didLogInNotification, object: nil)   // 나 로그인 했어요 라고 Flag 띄운다고 생각하자
             
             //Firebase의 DatabaseManager(내가 만든 클래스의 객체)에 보내준다.
             DatabaseManager.shared.userExists(with: email, completion: {exists in

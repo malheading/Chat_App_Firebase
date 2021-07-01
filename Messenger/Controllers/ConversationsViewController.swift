@@ -37,6 +37,8 @@ class ConversationsViewController: UIViewController {
     public var email:String?    // 대화 상대의 email
     public var name:String?     // 대화 상대의 이름 ( name )
     
+    private var loginObserver:NSObjectProtocol?
+    
     
     private let tableView:UITableView = {
         let table = UITableView()
@@ -70,6 +72,19 @@ class ConversationsViewController: UIViewController {
         fetchConversations()
         // database에서 기록되어 있는 대화들을 불러온다.
         startListeningForConversations()
+        
+        // notificationCenter의 obserber를 달아서 언제든 감지하도록 한다?
+        loginObserver = NotificationCenter.default.addObserver(forName: .didLogInNotification,
+                                                               object: nil,
+                                                               queue: .main,
+                                                               using: {[weak self] _ in
+            guard let strongSelf = self else{
+                return
+            }
+            
+            strongSelf.startListeningForConversations()
+            // 목표가 완료되면(Conversations fetch) --> Obserber를 제거해야한다.
+        })
     }
     
     private func startListeningForConversations(){
@@ -77,6 +92,14 @@ class ConversationsViewController: UIViewController {
             print("Error(ConversationsViewController.swift)!:Failed to get email from UserDefaults")
             return
         }
+        
+        print("###############################################################")
+        print("##########  Start Listening For Conversations  ################")
+        
+        if let observer = loginObserver{
+            NotificationCenter.default.removeObserver(observer)
+        }
+        
         let safeEmail = DatabaseManager.safeEmail(emailAddress: email)
         DatabaseManager.shared.getAllConversations(for: safeEmail) { [weak self]result in
             switch result{
@@ -195,6 +218,31 @@ extension ConversationsViewController:UITableViewDelegate, UITableViewDataSource
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return 120
+    }
+    
+    func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
+        return tableView == self.tableView  // can Edit Row 모드를 실행시킬 TableView가 동일한지 확인
+    }
+    
+    func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            // delete tableView row
+            tableView.beginUpdates()
+        
+            // Database에서 현재 User의 Conversations에서도 지워줘야 한다.
+            let selectedConversationId = conversations[indexPath.row].id
+            DatabaseManager.shared.deleteConversation(conversationId: selectedConversationId, completion: {success in
+                if success{
+//                    self?.conversations.remove(at: indexPath.row) // data model에서 제거
+//                    tableView.deleteRows(at: [indexPath], with: .left)  // tableView에서 제거
+                    print("Succeeded to delete conversation! \n")
+                } else{
+                    print("Failed to delete conversation! T_T \n")
+                }
+            })
+            
+            tableView.endUpdates()
+        }
     }
 }
 
