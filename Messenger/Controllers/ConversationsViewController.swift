@@ -129,11 +129,26 @@ class ConversationsViewController: UIViewController {
              result의 형태는 다음과 같다.
              ["name" : "Joe Smith", "email":"joe-gmail-com"]
              */
-            self?.email = result.email
-            self?.name = result.name
-            self?.createNewConversation(result: result)
+            guard let strongSelf = self else{
+                return
+            }
+            
+            let currentConversations = strongSelf.conversations
+            
+            if let targetConversation = currentConversations.first(where: {
+                $0.otherUserEmail == DatabaseManager.safeEmail(emailAddress: result.email)
+            }){
+                let vc = ChatViewController(with: targetConversation.otherUserEmail, id:targetConversation.id)    // 새로운 채팅방을 만들기 때문에 일단 id = nil
+                vc.isNewConversation = false // 없던 채팅방에 새로 만들경우에는 필수
+                vc.title = targetConversation.name    //대화 상대
+                vc.navigationItem.largeTitleDisplayMode = .never
+                strongSelf.navigationController?.pushViewController(vc, animated: true)
+            }else{
+                strongSelf.email = result.email
+                strongSelf.name = result.name
+                strongSelf.createNewConversation(result: result)
+            }
         }
-        
         let navVC = UINavigationController(rootViewController: vc)
         present(navVC, animated: true)
     }

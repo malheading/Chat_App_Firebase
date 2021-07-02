@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="17701" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="NAE-Yy-wBc">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="19115.2" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="NAE-Yy-wBc">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="17703"/>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="19107.4"/>
+        <capability name="Image references" minToolsVersion="12.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -77,7 +79,9 @@
         <scene sceneID="Zbi-2S-ebc">
             <objects>
                 <navigationController automaticallyAdjustsScrollViewInsets="NO" id="4XR-TC-5oe" sceneMemberID="viewController">
-                    <tabBarItem key="tabBarItem" title="Chat" id="GQW-HM-QFy"/>
+                    <tabBarItem key="tabBarItem" title="Chat" id="GQW-HM-QFy">
+                        <imageReference key="image" image="message" catalog="system"/>
+                    </tabBarItem>
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" largeTitles="YES" id="C7g-jI-1kn">
                         <rect key="frame" x="0.0" y="44" width="414" height="96"/>
@@ -96,7 +100,9 @@
         <scene sceneID="mvv-gx-fYz">
             <objects>
                 <navigationController id="eKm-fN-CF2" sceneMemberID="viewController">
-                    <tabBarItem key="tabBarItem" title="Profile" id="wye-kn-fdl" userLabel="Profile"/>
+                    <tabBarItem key="tabBarItem" title="Profile" id="wye-kn-fdl" userLabel="Profile">
+                        <imageReference key="image" image="person" catalog="system"/>
+                    </tabBarItem>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" largeTitles="YES" id="nDr-2v-4bS">
                         <rect key="frame" x="0.0" y="44" width="414" height="96"/>
                         <autoresizingMask key="autoresizingMask"/>
@@ -111,6 +117,8 @@
         </scene>
     </scenes>
     <resources>
+        <image name="message" catalog="system" width="128" height="113"/>
+        <image name="person" catalog="system" width="128" height="117"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

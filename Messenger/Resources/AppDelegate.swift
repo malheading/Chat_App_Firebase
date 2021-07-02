@@ -96,7 +96,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
         UserDefaults.standard.setValue(userFullName, forKey: "userFullName")
         
         DatabaseManager.shared.userExists(with: email, completion: {exists in
-            if exists{ //Insert to Database
+            if !exists{ //Insert to Database
                 let chatUser = ChatAppUser(firstName: user.profile.givenName,
                                            lastName: user.profile.familyName,
                                            emailAddress: email)

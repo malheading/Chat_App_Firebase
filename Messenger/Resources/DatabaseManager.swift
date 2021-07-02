@@ -51,7 +51,7 @@ extension DatabaseManager{
         
         //true: 아이디가 중복임
         database.child(safeEmail).observeSingleEvent(of: .value, with: {snapshot in
-            guard snapshot.value as? String != nil else{
+            guard snapshot.value as? [String:Any] != nil else{
                 completion(false)
                 return
             }
