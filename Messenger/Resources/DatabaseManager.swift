@@ -17,6 +17,8 @@ final class DatabaseManager {
     
     private let database = Database.database().reference()
     
+    private var requestedConversation:Conversation = Conversation(id: "", name: "", otherUserEmail: "", latestMessage: LatestMessage(date: "", text: "", isRead: false))
+    
     static func safeEmail(emailAddress:String)->String{
         var safeEmail = emailAddress.replacingOccurrences(of: ".", with: "-")
         safeEmail = safeEmail.replacingOccurrences(of: "@", with: "-")
@@ -355,11 +357,14 @@ extension DatabaseManager {
     public func getAllConversations(for email:String, completion: @escaping (Result<[Conversation],Error>)->Void){
         database.child("\(email)/conversations").observe(.value) { snapshot in
             guard let value = snapshot.value as? [[String:Any]] else{
-                print("***************************************************\n")
-                print("email:\(email) \n snapshot:\(snapshot.value)\n")
-                print("***************************************************\n")
-
-                completion(.failure(DatabaseError.failedToFetch))
+                print("************************DEBUG AREA*************************")
+                print("Returned with no conversations")
+                print("************************DEBUG AREA*************************")
+                
+                let conversations:[Conversation] = []
+                
+//                completion(.failure(DatabaseError.failedToFetch))
+                completion(.success(conversations))
                 return
             }
             let conversations:[Conversation] = value.compactMap { (dictionary) in
@@ -553,11 +558,16 @@ extension DatabaseManager {
                 }
                 // -->update sender latest message
                 strongSelf.database.child("\(safeEmail)/conversations").observeSingleEvent(of: .value) { snapshot in
+                    
+//                     2021.07.17 주석처리 --> 상대방에게 메시지가 있는 경우에는 여기서 return 되어버린다.
                     guard var snapshotSender=snapshot.value as? [[String:Any]] else{
+                        // 2021.07.17 만약에 현재 나에게 "conversations"라는 child가 없다면..?
                         completion(false)
                         print("Error(DatabaseManager->sendMessage)!: snapshot is not a type of [[String:Any]]\n")
                         return
                     }
+                    
+                    
                     let updatedValue:[String:Any] = [
                         "date": dateString,
                         "is_read":false,
@@ -674,6 +684,98 @@ extension DatabaseManager {
             }
         }
     }
+    public func OtherUserHasConversation(otherUserEmail:String, completion:@escaping (Result<String,Error>)->Void){
+        guard let currentUserEmail = UserDefaults.standard.value(forKey: "email") as? String else {
+                  return
+              }
+        let currentUserSafeEmail = DatabaseManager.safeEmail(emailAddress: currentUserEmail)
+        let otherUserSafeEmail = DatabaseManager.safeEmail(emailAddress: otherUserEmail)
+        
+        database.child("\(otherUserSafeEmail)/conversations").observeSingleEvent(of: .value, with: {snapshot in
+            guard let value = snapshot.value as? [[String:Any]] else{
+                completion(.failure(DatabaseError.failedToFetch))
+                return
+            }
+            
+            let targetConversation = value.first(where: {
+                guard let targetSender = $0["other_user_email"] as? String else{
+                    completion(.failure(DatabaseError.failedToFetch))
+                    return false
+                }
+                return targetSender == currentUserSafeEmail
+            })
+            guard let id = targetConversation?["id"] as? String else{
+                completion(.failure(DatabaseError.failedToFetch))
+                return
+            }
+            completion(.success(id))
+            return
+        })
+    }
+    
+    public func requestConversation(conversationId:String, otherUserName:String, otherUserEmail:String)->Conversation?{
+
+        database.child("\(conversationId)/messages").observeSingleEvent(of: .value, with: {[weak self]snapshot in
+            guard let strongSelf=self else{
+                return
+            }
+            
+            guard let shot = snapshot.value as? [[String:Any]] else{
+                print("Error(DatabaseManager-requestConversation): snapshot is not type of [[String:Any]]")
+                return
+            }
+            
+            let lastMessage = shot.last!
+            var isRead:Bool
+            if lastMessage["is_read"] as? String == "false" {
+                isRead = false
+            } else {
+                isRead = true
+            }
+            guard let dateString = lastMessage["date"] as? String,
+                  let textString = lastMessage["content"] as? String else {
+                      return
+                  }
+            let latestMessage = LatestMessage(date: dateString, text: textString, isRead: isRead)
+            let requestedConversation = Conversation(id: conversationId, name: otherUserName, otherUserEmail: otherUserEmail, latestMessage: latestMessage)
+            
+            strongSelf.requestedConversation = requestedConversation
+            
+        })
+        // 여기를 어떻게 해야할지 고민중...
+        return requestedConversation
+    }
+    
+    /// 현재 로그인한 유저의 데이터베이스에 conversation을 추가한다.
+    public func appendConversation(with email:String, conversation:Conversation){
+        
+    }
+    
+    public func isConversationEmpty(currentUserEmail:String, completion:@escaping (Bool)->Void){
+        let currentUserSafeEmail = DatabaseManager.safeEmail(emailAddress: currentUserEmail)
+//        let snapshot = database.child("\(currentUserSafeEmail)").value
+//        var isEmpty:Bool = false
+
+        database.child("\(currentUserSafeEmail)/").observeSingleEvent(of: .value, with: {snapshot in
+            guard let values = snapshot.value as? [String:Any] else {
+                completion(true)   // 비어있는거는 아니지만, 아에 브랜치가 없기 때문에 return false
+                return
+            }
+//            for value in values{
+//                if value.keys.first == "conversations"{
+//                    completion(false)   //  비어있지 않기 때문에 false
+//                    return
+//                }
+//            }
+            for key in values.keys{
+                if key == "conversations"{
+                    completion(false)   //  비어있지 않기 때문에 false
+                }
+            }
+            completion(true)    //루프 다 돌았는데도 "conversations" 못찾으면
+        })
+    }
+    
 }
 
 

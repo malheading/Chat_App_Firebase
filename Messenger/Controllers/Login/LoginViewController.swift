@@ -200,12 +200,13 @@ class LoginViewController: UIViewController {
             DatabaseManager.shared.getDataFor(path: safeEmail) { result in
                 switch result {
                 case .success(let data):
-                    guard let userData = data as? [String:Any] else{
-                        print("Error(LoginViewControoler)!: userData is not the type of [String:Any] \n")
-                        return
-                    }
-                    let firstName = userData["first_name"]
-                    let lastName = userData["last_name"]
+                    guard let userData = data as? [String:Any],
+                          let firstName = userData["first_name"] as? String,
+                          let lastName = userData["last_name"] as? String else{
+                              print("Error(LoginViewControoler)!: userData is not the type of [String:Any] \n")
+                              return
+                          }
+                    
                     let userFullName = "\(lastName) \(firstName)"
                     UserDefaults.standard.setValue(userFullName, forKey: "userFullName")    // Firebas Auth로 로그인할 때 이름을 캐쉬
                     let profileImageURL:String = "\(safeEmail)_profile_picture.png"

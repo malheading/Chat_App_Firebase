@@ -98,12 +98,13 @@ class ChatViewController: MessagesViewController {//Dependencies중에 하나인
         guard let email = UserDefaults.standard.value(forKey: "email") as? String,
               let photoURL = UserDefaults.standard.value(forKey: "profile_picture_url") as? String,
               let name = UserDefaults.standard.value(forKey: "userFullName") as? String else{
-            print("Error(ChatViewController.swift)!: email or photoURL or userFullName in UserDefaults is nil.")
-            print("\(UserDefaults.standard.value(forKey: "email"))")
-            print("\(UserDefaults.standard.value(forKey: "profile_picture_url"))")
-            print("\(UserDefaults.standard.value(forKey: "userFullName"))")
+//            print("Error(ChatViewController.swift)!: email or photoURL or userFullName in UserDefaults is nil.")
+//            print("\(UserDefaults.standard.value(forKey: "email"))")
+//            print("\(UserDefaults.standard.value(forKey: "profile_picture_url"))")
+//            print("\(UserDefaults.standard.value(forKey: "userFullName"))")
             return Sender(photoURL: "", senderId: "DUMMY_SENDER", displayName: "DUMMY_SENDER")
         }
+        
         let safeEmail = DatabaseManager.safeEmail(emailAddress: email)
         let selfSender = Sender(photoURL: "",   // selfSender와 Message의 Sender 일치해야하는 문제
                                 senderId: safeEmail,
