@@ -494,6 +494,7 @@ extension DatabaseManager {
             guard let strongSelf = self else{
                 return
             }
+            // Check if conversationID is exist.
             guard var currentMessages=snapshot.value as? [[String:Any]] else{
                 print("Error(DatabaseManager)!: Failed to observe the conversation ID")
                 completion(false)
@@ -603,11 +604,13 @@ extension DatabaseManager {
                             //                        completion(true)
                             // -->update recipient latest message
                             strongSelf.database.child("\(otherUserEmail)/conversations").observeSingleEvent(of: .value, with: { snapshot in
-                                guard var snapshotReceiver=snapshot.value as? [[String:Any]] else{
-                                    completion(false)
-                                    print("Error(DatabaseManager->sendMessage->Receiver)!: snapshot is not a type of [[String:Any]]\n")
-                                    return
-                                }
+                                // If other user does not have conversations tree, this will be false
+//                                guard var snapshotReceiver=snapshot.value as? [[String:Any]] else{
+//                                    completion(false)
+//                                    print("Error(DatabaseManager->sendMessage->Receiver)!: snapshot is not a type of [[String:Any]]\n")
+//                                    return
+//                                }
+                                
                                 let updatedValue:[String:Any] = [
                                     "date": dateString,
                                     "is_read":false,
@@ -616,30 +619,52 @@ extension DatabaseManager {
                                 var targetConversation:[String:Any]?
                                 var position = 0
                                 
-                                for currentConversation in snapshotReceiver{
-                                    if let currentID = currentConversation["id"] as? String, currentID == conversation{
-                                        targetConversation = currentConversation
-                                        break;
+                                // If other user has (otherUserEmail)/conversations, this if will be excuted.
+                                if var snapshotReceiver = snapshot.value as? [[String:Any]] {
+                                    for currentConversation in snapshotReceiver{
+                                        if let currentID = currentConversation["id"] as? String, currentID == conversation{
+                                            targetConversation = currentConversation
+                                            break;
+                                        }
+                                        position += 1
                                     }
-                                    position += 1
-                                }
-                                targetConversation?["last_message"] = updatedValue
-                                guard let targetConversation = targetConversation else {
-                                    print("Error(DatabaseManager->sendMessage->Receiver)!: targetConversation is nil\n")
-                                    completion(false)
-                                    return
-                                }
-                                
-                                snapshotReceiver[position] = targetConversation
-                                strongSelf.database.child("\(otherUserEmail)/conversations").setValue(snapshotReceiver) { error, _ in
-                                    guard error==nil else{
-                                        print("Error(DatabaseManager->sendMessage->Receiver)!: Failed to setValue of snapshotSender to the other User\n")
+                                    targetConversation?["last_message"] = updatedValue
+                                    guard let targetConversation = targetConversation else {
+                                        print("Error(DatabaseManager->sendMessage->Receiver)!: targetConversation is nil\n")
                                         completion(false)
                                         return
                                     }
-                                    completion(true)
+                                    
+                                    snapshotReceiver[position] = targetConversation
+                                    strongSelf.database.child("\(otherUserEmail)/conversations").setValue(snapshotReceiver) { error, _ in
+                                        guard error==nil else{
+                                            print("Error(DatabaseManager->sendMessage->Receiver)!: Failed to setValue of snapshotSender to the other User\n")
+                                            completion(false)
+                                            return
+                                        }
+                                        completion(true)
+                                    }
+                                } else{ // Or if other user does not have (otherUserEmail)/conversations, I need to make it manually
+                                    targetConversation = ["last_message":updatedValue,
+                                                          "id":conversation,
+                                                          "name":UserDefaults.standard.value(forKey:"userFullName") as! String,
+                                                          "other_user_email":safeEmail]
+                                    guard let targetConversation = targetConversation else {
+                                        print("DatabaseManager-> sendMesasge -> targetConversation unwrap fail")
+                                        return
+                                    }
+                                    
+                                    let snapshotReceiver:[[String:Any]] = [targetConversation]
+                                    
+                                    strongSelf.database.child("\(otherUserEmail)/conversations").setValue(snapshotReceiver){ error, _ in
+                                        guard error==nil else{
+                                            print("Error(DatabaseManager->sendMessage->Receiver)!: Failed to setValue of snapshotSender to the other User\n")
+                                            completion(false)
+                                            return
+                                        }
+                                        completion(true)
+                                    }
                                 }
-                                
                             })
                         }
                     }else {
